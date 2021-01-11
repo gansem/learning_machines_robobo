@@ -16,10 +16,10 @@ class VRepEnv:
         self.action_space = Discrete(len(actions))
         self.observation_space = Box(low=0.0, high=1.0, shape=(n_observations,))  # low and high depend on sensor values + normalization. Need to adjust.
         self.running = False
-        self.observations = self.get_sensor_observations()
 
     def start(self):
         self.rob.play_simulation()
+        self.observations = self.get_sensor_observations()
         self.running = True
 
     def reset(self):
@@ -31,7 +31,7 @@ class VRepEnv:
         # save starting position
         start_position = self.rob.position()
         # perform action in environment
-        self.rob.move(action[0], action[1], action[3])
+        self.rob.move(action[0], action[1], action[2])
         # save stopping position
         stop_position = self.rob.position()
         # save stopping ir readings for relevant sensors
@@ -41,8 +41,9 @@ class VRepEnv:
         distance_reward = action[3]*math.sqrt((stop_position[0] - start_position[0])**2
                                               + (stop_position[1] - start_position[1])**2)
         sensor_penalty = self._compute_sensor_penalty(action)
-        alpha = beta = 1.0  # TODO: figure out proper scalars
-        overall_reward = alpha * distance_reward - beta * sensor_penalty
+        alpha = 10.0  # TODO: figure out proper scalars
+        beta = 1.0
+        overall_reward = alpha * distance_reward + beta * sensor_penalty
 
         return self.observations, overall_reward, None, None  # TODO: figure out last to params
 
@@ -54,14 +55,20 @@ class VRepEnv:
         return [observation[i] for i in [1, 3, 5, 7]]  # reading only sensors: backC, frontRR,  frontC, frontLL
 
     def _compute_sensor_penalty(self, action):
-        # TODO: figure out what to do with negative speeds.
+        # action[0] is left wheel speed action [1] is right wheel speed.
         action_sum = action[0] + action[1]
-        if action[0] < 0 and action[1] < 0:  # going backwards
+        if action[0] < 0 and action[0] == action[1]:  # going backwards
             # - backC
             return -1*self.observations[0]
         elif action[0] == action[1]:  # going straight-forward
             # - frontC
             return -1*self.observations[2]
+
+        # turning on point
+        elif action[0] < 0:  # turning left on the spot
+            return -1*self.observations[3]
+        elif action[1] < 0:  # turning right on the spot
+            return -1*self.observations[1]
 
         # for turning actions the relative part of the reward should depend on the speed in which the agent turned into
         # a 'bad' position. This is done with the weighted average of wheel speeds.
@@ -73,3 +80,21 @@ class VRepEnv:
             # - (right/sum) * frontLL + (left/sum) * frontC
             return -1*((action[1]/action_sum)*self.observations[3]
                        + ((action[0]/action_sum)*self.observations[2]))
+
+# Testing
+# actions = [(50, 50, 1000, 1),
+#            (20, 0, 1000, 1),
+#            (0, 20, 1000, 1),
+#            (-20, 20, 1000, 1),
+#            (-20, -20, 1000, -1),
+#            (60, 20, 1000, 1)]
+# env = VRepEnv(actions, 4)
+# env.start()
+# import random
+# for i in range(3):
+#     print(env.step(actions[0]), actions[0])
+# for i in range(20):
+#     action = random.choice(actions)
+#     print(env.step(action), action)
+#
+# env.rob.stop_world()
