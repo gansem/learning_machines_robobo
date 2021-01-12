@@ -26,6 +26,7 @@ class VRepEnv:
         self.time_per_episode = 20000  # 20 seconds
         self.time_passed = 0
         self.df = pd.DataFrame()
+        self.optimal_reward = 0
 
     def reset(self):
         self.rob.stop_world()
@@ -53,19 +54,20 @@ class VRepEnv:
         # save stopping ir readings for relevant sensors
         self.observations = self.get_sensor_observations()
 
-        alpha = 6.0  # TODO: figure out proper scalars
-        beta = 2.0
+
         in_object_range = False
         # if any IRS detects an object, add to validity measure
         if any(self.rob.read_irs()):
             in_object_range = True
         # add maximum +reward
         # distance = time (ms) * speed (?)
-        optimal_reward = (action[3] * np.mean([action[0], action[1]]))/10
+        self.optimal_reward += (action[3] * np.mean([action[0], action[1]]))/10
 
         # calculate distance reward with euclidean distance. Negative if action is going backwards
         distance_reward = action[3]*math.sqrt((stop_position[0] - start_position[0])**2
                                               + (stop_position[1] - start_position[1])**2)
+        alpha = 6.0  # TODO: figure out proper scalars
+        beta = 2.0
         # get bonus if going straight. otherwise it just lears to turn in a circle
         if action[0] == action[1] and action[0] > 0:
             distance_reward += 0.8/alpha
@@ -80,12 +82,13 @@ class VRepEnv:
             done = True
 
         # write to dataframe
-        self.df = self.df.append({"action_index": action_index, "observations:": self.observations, "reward": overall_reward, "optimal_reward": optimal_reward, "object_in_range": in_object_range}, ignore_index=True)
-        print(f"action_index: {action_index} -- observations: {self.observations} | reward: {overall_reward} | optimal_reward: {optimal_reward} | object in range: {in_object_range}")
+        self.df = self.df.append({"action_index": action_index, "observations:": self.observations, "reward": overall_reward, "optimal_reward": self.optimal_reward, "object_in_range": in_object_range}, ignore_index=True)
+        print(f"action_index: {action_index} -- observations: {self.observations} | reward: {overall_reward} | optimal_reward: {self.optimal_reward} | object in range: {in_object_range}")
 
         # plot learning at the end of episode
         if done:
             self.plot_learning()
+            self.optimal_reward = 0
 
         return self.observations, overall_reward, done, {}
 
@@ -145,7 +148,7 @@ class VRepEnv:
         _df = self.df[self.df['object_in_range'] == 1]
         _df.reset_index(inplace=True)
         # melt
-        melt = _df.melt(id_vars='index', value_vars=['reward', 'optimal_rewards'])
+        melt = _df.melt(id_vars='index', value_vars=['reward', 'optimal_reward'])
 
         # plot
         sns.lineplot(data=melt, x='index', y='value', hue='variable')
