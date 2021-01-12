@@ -2,6 +2,10 @@ import robobo
 from gym.spaces import Discrete, Box
 import math
 import numpy as np
+import random
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 class VRepEnv:
     """Class to plug the VRep simulator environment into the Stable - baseline DQN algorithm."""
@@ -21,6 +25,7 @@ class VRepEnv:
         self.observation_space = Box(low=0.0, high=1.0, shape=(n_observations,))  # low and high depend on sensor values + normalization. Need to adjust.
         self.time_per_episode = 20000  # 20 seconds
         self.time_passed = 0
+        self.df = pd.DataFrame()
 
     def reset(self):
         self.rob.stop_world()
@@ -48,6 +53,14 @@ class VRepEnv:
         # save stopping ir readings for relevant sensors
         self.observations = self.get_sensor_observations()
 
+        in_object_range = False
+        # if any IRS detects an object, add to validity measure
+        if any(self.rob.read_irs()):
+            in_object_range = True
+        # add maximum +reward
+        # distance = time (ms) * speed (?)
+        optimal_reward = (action[3] * np.mean([action[0], action[1]]))/10
+
         # calculate distance reward with euclidean distance. Negative if action is going backwards
         distance_reward = action[3]*math.sqrt((stop_position[0] - start_position[0])**2
                                               + (stop_position[1] - start_position[1])**2)
@@ -61,12 +74,20 @@ class VRepEnv:
         print(overall_reward)
 
         # if time passed supersedes threshold, stop episode
-        stop_episode = False
+        done = False
         self.time_passed += action[2]
-        if self.time_passed > self.time_per_episode:
-            stop_episode = True
+        if self.time_passed >= self.time_per_episode:
+            done = True
 
-        return self.observations, overall_reward, stop_episode, {}  # TODO: figure out last one params
+        # write to dataframe
+        self.df = self.df.append({"action_index": action_index, "observations:": self.observations, "reward": overall_reward, "optimal_reward": optimal_reward, "object_in_range": in_object_range}, ignore_index=True)
+        print(f"action_index: {action_index} -- observations: {self.observations} | reward: {overall_reward} | optimal_reward: {optimal_reward} | object in range: {in_object_range}")
+
+        # plot learning at the end of episode
+        if done:
+            self.plot_learning()
+
+        return self.observations, overall_reward, done, {}  # TODO: figure out last one params
 
     def get_rob_position(self):
         return self.rob.position()
@@ -117,6 +138,17 @@ class VRepEnv:
             # - (right/sum) * frontLL + (left/sum) * frontC
             return -1*((action[1]/action_sum)*self.observations[3]
                        + ((action[0]/action_sum)*self.observations[2]))
+
+    def plot_learning(self, episode_index=0):
+        # add only the rewards obtained when object was detected
+        _df = self.df[self.df['object_in_range'] == 1]
+        _df.reset_index(inplace=True)
+        # melt
+        melt = _df.melt(id_vars='index', value_vars=['reward', 'optimal_rewards'])
+
+        # plot
+        sns.lineplot(data=melt, x='index', y='value', hue='variable')
+        plt.savefig(f"learning_{episode_index}.png")
 
 # Testing
 # actions = [(50, 50, 1000, 1),
