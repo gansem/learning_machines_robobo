@@ -404,13 +404,9 @@ class OurDQN(OffPolicyRLModel):
 
 # Testing
 actions = [(60, 60, 1000, 1),    #straight forward
-           (50, 0, 1000, 1),     #turn right
-           (0, 50, 1000, 1),     #turn left
-           (50, 25, 1000, 1),    #forward right
-           (25, 50, 1000, 1),    #forward left
            (20, -20, 1000, 1),   #spin right
            (-20, 20, 1000, 1),   #spin left
-           (-50, -50, 1000, -1)] #straight backwards
+           (-50, -50, 800, -0.5)] #straight backwards
 env = VRepEnv(actions, 4)
 model = OurDQN(MlpPolicy, env)
 model.learn(total_timesteps=50000)

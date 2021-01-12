@@ -48,15 +48,15 @@ class VRepEnv:
         # save stopping ir readings for relevant sensors
         self.observations = self.get_sensor_observations()
 
+        alpha = 6.0  # TODO: figure out proper scalars
+        beta = 2.0
         # calculate distance reward with euclidean distance. Negative if action is going backwards
         distance_reward = action[3]*math.sqrt((stop_position[0] - start_position[0])**2
                                               + (stop_position[1] - start_position[1])**2)
-        # get bonus if going straight
-        if action[0] == action[1]:
-            distance_reward += 0.5
+        # get bonus if going straight. otherwise it just lears to turn in a circle
+        if action[0] == action[1] and action[0] > 0:
+            distance_reward += 0.8/alpha
         sensor_penalty = self._compute_sensor_penalty2()
-        alpha = 6.0  # TODO: figure out proper scalars
-        beta = 1.0
         overall_reward = alpha * distance_reward + beta * sensor_penalty
         print(overall_reward)
 
@@ -66,7 +66,7 @@ class VRepEnv:
         if self.time_passed > self.time_per_episode:
             stop_episode = True
 
-        return self.observations, overall_reward, stop_episode, {}  # TODO: figure out last one params
+        return self.observations, overall_reward, stop_episode, {}
 
     def get_rob_position(self):
         return self.rob.position()
@@ -77,11 +77,11 @@ class VRepEnv:
         '''
         observation = self.rob.read_irs()
         observation = [observation[i] for i in [1, 3, 5, 7]]  # reading only sensors: backC, frontRR,  frontC, frontLL
-        observation = [1 if observation[i] == False else observation[i] for i in range(len(observation))]  # false -> 1
+        observation = [0.25 if observation[i]==False else observation[i] for i in range(len(observation))]  # false -> 1
         return observation
 
     def _compute_sensor_penalty2(self):
-        errors = np.array([1-self.observations[i] for i in range(len(self.observations))])
+        errors = np.array([0.25-self.observations[i] for i in range(len(self.observations))])
         # give bonus if no sensor is triggered
         if errors.sum() == 0:
             return 0.5
