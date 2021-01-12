@@ -403,12 +403,14 @@ class OurDQN(OffPolicyRLModel):
         self._save_to_file(save_path, data=data, params=params_to_save, cloudpickle=cloudpickle)
 
 # Testing
-actions = [(50, 50, 500, 1),
-           (50, 0, 500, 1),
-           (0, 50, 500, 1),
-           (-20, 20, 500, 1),
-           (20, -20, 500, 1),
-           (-50, -50, 500, -1)]
+actions = [(50, 50, 500, 1),    #straight forward
+           (50, 0, 500, 1),     #turn right
+           (0, 50, 500, 1),     #turn left
+           (50, 25, 500, 1),    #forward right
+           (25, 50, 500, 1),    #forward left
+           (20, -20, 500, 1),   #spin right
+           (-20, 20, 500, 1),   #spin left
+           (-50, -50, 500, -1)] #straight backwards
 env = VRepEnv(actions, 4)
 model = OurDQN(MlpPolicy, env)
 model.learn(total_timesteps=2500)

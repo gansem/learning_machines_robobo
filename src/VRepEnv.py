@@ -17,6 +17,8 @@ class VRepEnv:
         self.action_space = Discrete(len(actions))
         self.observations = self.reset()
         self.observation_space = Box(low=0.0, high=1.0, shape=(n_observations,))  # low and high depend on sensor values + normalization. Need to adjust.
+        self.time_per_episode = 5000 # 5 seconds
+        self.time_passed = 0
 
     def reset(self):
         self.rob.stop_world()
@@ -44,7 +46,13 @@ class VRepEnv:
         beta = 1.0
         overall_reward = alpha * distance_reward + beta * sensor_penalty
 
-        return self.observations, overall_reward, False, {}  # TODO: figure out last two params
+        # if time passed supersedes threshold, stop episode
+        stop_episode = False
+        self.time_passed += action[2]
+        if self.time_passed > self.time_per_episode:
+            stop_episode = True
+
+        return self.observations, overall_reward, stop_episode, {}  # TODO: figure out last one params
 
     def get_rob_position(self):
         return self.rob.position()
@@ -88,12 +96,11 @@ class VRepEnv:
 #            (-20, -20, 1000, -1),
 #            (60, 20, 1000, 1)]
 # env = VRepEnv(actions, 4)
-# env.start()
 # import random
 # for i in range(3):
-#     print(env.step(actions[0]), actions[0])
+#     print(env.step(0), 0)
 # for i in range(20):
-#     action = random.choice(actions)
+#     action = random.choice(range(6))
 #     print(env.step(action), action)
-#
+
 # env.rob.stop_world()
