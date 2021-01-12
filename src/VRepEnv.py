@@ -1,7 +1,8 @@
 import robobo
 from gym.spaces import Discrete, Box
 import math
-from vrep.error import VrepApiError
+import numpy as np
+
 class VRepEnv:
     """Class to plug the VRep simulator environment into the Stable - baseline DQN algorithm."""
 
@@ -50,10 +51,13 @@ class VRepEnv:
         # calculate distance reward with euclidean distance. Negative if action is going backwards
         distance_reward = action[3]*math.sqrt((stop_position[0] - start_position[0])**2
                                               + (stop_position[1] - start_position[1])**2)
-        sensor_penalty = self._compute_sensor_penalty(action)
-        alpha = 2.0  # TODO: figure out proper scalars
+        # get bonus if going straight
+        if action[0] == action[1]:
+            distance_reward += 0.5
+        sensor_penalty = self._compute_sensor_penalty2()
+        alpha = 6.0  # TODO: figure out proper scalars
         beta = 1.0
-        overall_reward = alpha * distance_reward + beta * sensor_penalty**2
+        overall_reward = alpha * distance_reward + beta * sensor_penalty
         print(overall_reward)
 
         # if time passed supersedes threshold, stop episode
@@ -68,8 +72,24 @@ class VRepEnv:
         return self.rob.position()
 
     def get_sensor_observations(self):
+        '''Reads sensor information and returns it. If distance too big and sensor gives False then this value becomes 1.
+        We might want to introduce a normalization step here.
+        '''
         observation = self.rob.read_irs()
-        return [observation[i] for i in [1, 3, 5, 7]]  # reading only sensors: backC, frontRR,  frontC, frontLL
+        observation = [observation[i] for i in [1, 3, 5, 7]]  # reading only sensors: backC, frontRR,  frontC, frontLL
+        observation = [1 if observation[i] == False else observation[i] for i in range(len(observation))]  # false -> 1
+        return observation
+
+    def _compute_sensor_penalty2(self):
+        errors = np.array([1-self.observations[i] for i in range(len(self.observations))])
+        # give bonus if no sensor is triggered
+        if errors.sum() == 0:
+            return 0.5
+        # give more importance to the front sensors
+        errors[0] = 0.5*errors[0]
+        errors[2] = 1.5*errors[2]
+        sum = errors.sum()
+        return -sum
 
     def _compute_sensor_penalty(self, action):
         # action[0] is left wheel speed action [1] is right wheel speed.
