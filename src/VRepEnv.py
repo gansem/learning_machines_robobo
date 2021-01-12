@@ -26,12 +26,17 @@ class VRepEnv:
         self.time_per_episode = 20000  # 20 seconds
         self.time_passed = 0
         self.df = pd.DataFrame()
-        self.optimal_reward = 0
+        self.v_measure_calc_distance = 0
+        self.v_measure_sensor_distance = 0
+        self.accu_reward = 0
+        self.accu_v_measure_sensor_distance = 0
+        self.episode_counter = 0
 
     def reset(self):
-        self.rob.stop_world()
+        "Done at every episode end"
+        # self.rob.stop_world()
         self.time_passed = 0
-        self.rob.play_simulation()
+        # self.rob.play_simulation()
         # try:
         #     self.observations = self.get_sensor_observations()
         #     print('got observations', self.observations)
@@ -39,6 +44,7 @@ class VRepEnv:
         #     print(e)
         #     print('got observations', self.observations)
         #     self.reset()
+
         return self.observations
 
 
@@ -61,7 +67,10 @@ class VRepEnv:
             in_object_range = True
         # add maximum +reward
         # distance = time (ms) * speed (?)
-        self.optimal_reward += (action[3] * np.mean([action[0], action[1]]))/10
+        self.v_measure_calc_distance += (action[3] * np.mean([action[0], action[1]]))/10
+        # calculate the inverse sensor distance as a sum
+        self.v_measure_sensor_distance = np.sum([(0.2-x) for x in self.rob.read_irs()])
+        self.accu_v_measure_sensor_distance += self.v_measure_sensor_distance
 
         # calculate distance reward with euclidean distance. Negative if action is going backwards
         distance_reward = action[3]*math.sqrt((stop_position[0] - start_position[0])**2
@@ -73,7 +82,8 @@ class VRepEnv:
             distance_reward += 0.8/alpha
         sensor_penalty = self._compute_sensor_penalty2()
         overall_reward = alpha * distance_reward + beta * sensor_penalty
-        print(overall_reward)
+        # print(overall_reward)
+        self.accu_reward += overall_reward
 
         # if time passed supersedes threshold, stop episode
         done = False
@@ -82,13 +92,29 @@ class VRepEnv:
             done = True
 
         # write to dataframe
-        self.df = self.df.append({"action_index": action_index, "observations:": self.observations, "reward": overall_reward, "optimal_reward": self.optimal_reward, "object_in_range": in_object_range}, ignore_index=True)
-        print(f"action_index: {action_index} -- observations: {self.observations} | reward: {overall_reward} | optimal_reward: {self.optimal_reward} | object in range: {in_object_range}")
+        self.df = self.df.append({
+            "action_index": int(action_index),
+            "episode_index": int(self.episode_counter),
+            "observations:": self.observations, 
+            "reward": overall_reward, 
+            "object_in_range": in_object_range, 
+            "v_measure_calc_distance": self.v_measure_calc_distance, 
+            "v_measure_sensor_distance": self.v_measure_sensor_distance,
+            "accu_v_measure_sensor_distance": self.accu_v_measure_sensor_distance,
+            "accu_reward": self.accu_reward
+            }, ignore_index=True)
+        print(f"\n-- action_index: {action_index} --\nobservations: {self.observations} \nreward: {overall_reward} \nobject in range: {in_object_range} \nv_measure_calc_distance: {self.v_measure_calc_distance}, \nv_measure_sensor_distance: {self.v_measure_sensor_distance} \naccu_v_measure_sensor_distance: {self.accu_v_measure_sensor_distance} \nself.accu_reward: {self.accu_reward}")
 
         # plot learning at the end of episode
         if done:
             self.plot_learning()
-            self.optimal_reward = 0
+            self.v_measure_calc_distance = 0
+            self.accu_v_measure_sensor_distance = 0
+            self.accu_reward = 0
+            self.episode_counter += 1
+            
+            # write dataframe to disk
+            self.df.to_csv('learning_progress.tsv', sep='\t')
 
         return self.observations, overall_reward, done, {}
 
@@ -148,11 +174,17 @@ class VRepEnv:
         _df = self.df[self.df['object_in_range'] == 1]
         _df.reset_index(inplace=True)
         # melt
-        melt = _df.melt(id_vars='index', value_vars=['reward', 'optimal_reward'])
+        melt = _df.melt(id_vars='index', value_vars=['reward', 'v_measure_calc_distance', 'v_measure_sensor_distance', 'accu_reward', 'accu_v_measure_sensor_distance'])
+
+        # r = np.sum(self.accu_reward)
+        # s = np.sum(self.accu_v_measure_sensor_distance)
 
         # plot
+        plt.figure()
         sns.lineplot(data=melt, x='index', y='value', hue='variable')
+        # sns.lineplot(x=[i for i in range(self.episode_counter)], y=[r,s])
         plt.savefig(f"learning_{episode_index}.png")
+        plt.clf()
 
 # Testing
 # actions = [(50, 50, 1000, 1),
