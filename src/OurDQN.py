@@ -5,6 +5,7 @@ from functools import partial
 import tensorflow as tf
 import numpy as np
 import gym
+from VRepEnv import VRepEnv
 
 from stable_baselines import logger
 from stable_baselines.common import tf_util, OffPolicyRLModel, SetVerbosity, TensorboardWriter
@@ -12,10 +13,10 @@ from stable_baselines.common.vec_env import VecEnv
 from stable_baselines.common.schedules import LinearSchedule
 from stable_baselines.common.buffers import ReplayBuffer, PrioritizedReplayBuffer
 from stable_baselines.deepq.build_graph import build_train
-from stable_baselines.deepq.policies import DQNPolicy
+from stable_baselines.deepq.policies import DQNPolicy, MlpPolicy
 
 
-class DQN(OffPolicyRLModel):
+class OurDQN(OffPolicyRLModel):
     """
     The DQN model class. (Adapted to use an environment that wraps the VRep simulator)
     DQN paper: https://arxiv.org/abs/1312.5602
@@ -64,7 +65,7 @@ class DQN(OffPolicyRLModel):
                  _init_setup_model=True, policy_kwargs=None, full_tensorboard_log=False, seed=None):
 
         # TODO: replay_buffer refactoring
-        super(DQN, self).__init__(policy=policy, env=env, replay_buffer=None, verbose=verbose, policy_base=DQNPolicy,
+        super(OurDQN, self).__init__(policy=policy, env=env, replay_buffer=None, verbose=verbose, policy_base=DQNPolicy,
                                   requires_vec_env=False, policy_kwargs=policy_kwargs, seed=seed, n_cpu_tf_sess=n_cpu_tf_sess)
 
         self.param_noise = param_noise
@@ -400,3 +401,15 @@ class DQN(OffPolicyRLModel):
         params_to_save = self.get_parameters()
 
         self._save_to_file(save_path, data=data, params=params_to_save, cloudpickle=cloudpickle)
+
+# Testing
+actions = [(50, 50, 500, 1),
+           (50, 0, 500, 1),
+           (0, 50, 500, 1),
+           (-20, 20, 500, 1),
+           (20, -20, 500, 1),
+           (-50, -50, 500, -1)]
+env = VRepEnv(actions, 4)
+model = OurDQN(MlpPolicy, env)
+model.learn(total_timesteps=2500)
+print()

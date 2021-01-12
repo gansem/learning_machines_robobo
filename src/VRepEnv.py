@@ -11,31 +11,22 @@ class VRepEnv:
         :param actions: list of actions. Each action is a four-tuple (left_speed, right_speed, duration, direction(-1=backwards, 1=forward))
         :param n_observations: number of sensors
         """
-        self.rob = robobo.SimulationRobobo().connect(address='100.68.1.209', port=19997)
+        self.rob = robobo.SimulationRobobo().connect(address='127.0.0.1', port=19997)
         # using action and observation spaces of Gym to minimize code alterations.
         self.actions = actions
         self.action_space = Discrete(len(actions))
+        self.observations = self.reset()
         self.observation_space = Box(low=0.0, high=1.0, shape=(n_observations,))  # low and high depend on sensor values + normalization. Need to adjust.
-        self.running = False
-
-    def start(self):
-        self.rob.play_simulation()
-        self.observations = self.get_sensor_observations()
-        self.running = True
 
     def reset(self):
-        self.running = False
         self.rob.stop_world()
-        self.rob = robobo.SimulationRobobo().connect(address='100.68.1.209', port=19997)
         self.rob.play_simulation()
-        self.observations = self.get_sensor_observations()
-        self.running = True
-        return self.observations
+        return self.get_sensor_observations()
 
 
-    def step(self, action):
+    def step(self, action_index):
         """Performs the action in the environment and returns the new observations (state), reward, done (?) and info(?)"""
-        action = self.actions[action]
+        action = self.actions[action_index]
         # save starting position
         start_position = self.rob.position()
         # perform action in environment
@@ -53,7 +44,7 @@ class VRepEnv:
         beta = 1.0
         overall_reward = alpha * distance_reward + beta * sensor_penalty
 
-        return self.observations, overall_reward, None, None  # TODO: figure out last to params
+        return self.observations, overall_reward, False, {}  # TODO: figure out last two params
 
     def get_rob_position(self):
         return self.rob.position()
