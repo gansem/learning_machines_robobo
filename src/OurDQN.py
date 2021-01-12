@@ -325,7 +325,7 @@ class OurDQN(OffPolicyRLModel):
                     logger.record_tabular("% time spent exploring",
                                           int(100 * self.exploration.value(self.num_timesteps)))
                     logger.dump_tabular()
-                OurDQN.save(f'obstacle_model')
+                model.save(f'obstacle_model')
 
         callback.on_training_end()
         return self
@@ -412,6 +412,6 @@ actions = [(30, 30, 500, 1),    #straight forward
 env = VRepEnv(actions, 4)
 # load model
 model = OurDQN(MlpPolicy, env)
-model.learn(total_timesteps=50)
+model.learn(total_timesteps=40000)
 model = OurDQN.load('obstacle_model')
 print()
