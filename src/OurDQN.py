@@ -6,6 +6,7 @@ import tensorflow as tf
 import numpy as np
 import gym
 from VRepEnv import VRepEnv
+from datetime import datetime
 
 from stable_baselines import logger
 from stable_baselines.common import tf_util, OffPolicyRLModel, SetVerbosity, TensorboardWriter
@@ -324,6 +325,7 @@ class OurDQN(OffPolicyRLModel):
                     logger.record_tabular("% time spent exploring",
                                           int(100 * self.exploration.value(self.num_timesteps)))
                     logger.dump_tabular()
+                model.save(f'obstacle_model')
 
         callback.on_training_end()
         return self
@@ -409,5 +411,5 @@ actions = [(60, 60, 500, 1),    #straight forward
            (-50, -50, 300, -0.5)] #straight backwards
 env = VRepEnv(actions, 4)
 model = OurDQN(MlpPolicy, env)
-model.learn(total_timesteps=50000)
+model.learn(total_timesteps=50)
 print()
