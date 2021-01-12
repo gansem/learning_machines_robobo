@@ -1,7 +1,7 @@
 import robobo
 from gym.spaces import Discrete, Box
 import math
-
+from vrep.error import VrepApiError
 class VRepEnv:
     """Class to plug the VRep simulator environment into the Stable - baseline DQN algorithm."""
 
@@ -15,15 +15,24 @@ class VRepEnv:
         # using action and observation spaces of Gym to minimize code alterations.
         self.actions = actions
         self.action_space = Discrete(len(actions))
-        self.observations = self.reset()
+        self.rob.play_simulation()
+        self.observations = self.get_sensor_observations()
         self.observation_space = Box(low=0.0, high=1.0, shape=(n_observations,))  # low and high depend on sensor values + normalization. Need to adjust.
-        self.time_per_episode = 5000 # 5 seconds
+        self.time_per_episode = 20000  # 20 seconds
         self.time_passed = 0
 
     def reset(self):
         self.rob.stop_world()
+        self.time_passed = 0
         self.rob.play_simulation()
-        return self.get_sensor_observations()
+        # try:
+        #     self.observations = self.get_sensor_observations()
+        #     print('got observations', self.observations)
+        # except VrepApiError as e:
+        #     print(e)
+        #     print('got observations', self.observations)
+        #     self.reset()
+        return self.observations
 
 
     def step(self, action_index):
@@ -42,9 +51,10 @@ class VRepEnv:
         distance_reward = action[3]*math.sqrt((stop_position[0] - start_position[0])**2
                                               + (stop_position[1] - start_position[1])**2)
         sensor_penalty = self._compute_sensor_penalty(action)
-        alpha = 10.0  # TODO: figure out proper scalars
+        alpha = 2.0  # TODO: figure out proper scalars
         beta = 1.0
-        overall_reward = alpha * distance_reward + beta * sensor_penalty
+        overall_reward = alpha * distance_reward + beta * sensor_penalty**2
+        print(overall_reward)
 
         # if time passed supersedes threshold, stop episode
         stop_episode = False
