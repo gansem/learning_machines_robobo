@@ -1,12 +1,12 @@
 """Most of this code is shamelessly copied
 from https://github.com/hill-a/stable-baselines/blob/master/stable_baselines/deepq/dqn.py"""
 from functools import partial
+from keras.models import load_model
 
 import tensorflow as tf
 import numpy as np
 import gym
 from VRepEnv import VRepEnv
-from datetime import datetime
 
 from stable_baselines import logger
 from stable_baselines.common import tf_util, OffPolicyRLModel, SetVerbosity, TensorboardWriter
@@ -325,7 +325,7 @@ class OurDQN(OffPolicyRLModel):
                     logger.record_tabular("% time spent exploring",
                                           int(100 * self.exploration.value(self.num_timesteps)))
                     logger.dump_tabular()
-                model.save(f'obstacle_model')
+                OurDQN.save(f'obstacle_model')
 
         callback.on_training_end()
         return self
@@ -410,6 +410,8 @@ actions = [(60, 60, 500, 1),    #straight forward
            (-20, 20, 500, 1),   #spin left
            (-50, -50, 300, -0.5)] #straight backwards
 env = VRepEnv(actions, 4)
+# load model
 model = OurDQN(MlpPolicy, env)
 model.learn(total_timesteps=50)
+model = OurDQN.load('obstacle_model')
 print()
