@@ -1,7 +1,6 @@
 """Most of this code is shamelessly copied
 from https://github.com/hill-a/stable-baselines/blob/master/stable_baselines/deepq/dqn.py"""
 from functools import partial
-from keras.models import load_model
 
 import tensorflow as tf
 import numpy as np
@@ -325,7 +324,6 @@ class OurDQN(OffPolicyRLModel):
                     logger.record_tabular("% time spent exploring",
                                           int(100 * self.exploration.value(self.num_timesteps)))
                     logger.dump_tabular()
-                model.save(f'obstacle_model')
 
         callback.on_training_end()
         return self
@@ -403,15 +401,3 @@ class OurDQN(OffPolicyRLModel):
         params_to_save = self.get_parameters()
 
         self._save_to_file(save_path, data=data, params=params_to_save, cloudpickle=cloudpickle)
-
-# Testing
-actions = [(30, 30, 500, 1),    #straight forward
-           (10, -10, 500, 1),   #spin right
-           (-10, 10, 500, 1),   #spin left
-           (-25, -25, 300, -0.5)] #straight backwards
-env = VRepEnv(actions, 4)
-# load model
-model = OurDQN(MlpPolicy, env)
-model.learn(total_timesteps=40000)
-model = OurDQN.load('obstacle_model')
-print()
