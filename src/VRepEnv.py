@@ -73,7 +73,7 @@ class VRepEnv:
         beta = 1.0
         # get bonus if going straight. otherwise it just lears to turn in a circle
         if action[0] == action[1] and action[0] > 0:
-            distance_reward *= 20
+            distance_reward *= 40
         sensor_penalty = self._compute_sensor_penalty()
         overall_reward = alpha * distance_reward + beta * sensor_penalty
         # print(overall_reward)
