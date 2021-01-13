@@ -70,11 +70,11 @@ class VRepEnv:
         distance_reward = action[3]*math.sqrt((stop_position[0] - start_position[0])**2
                                               + (stop_position[1] - start_position[1])**2)
         alpha = 6.0  # TODO: figure out proper scalars
-        beta = 2.0
+        beta = 4.0
         # get bonus if going straight. otherwise it just lears to turn in a circle
         if action[0] == action[1] and action[0] > 0:
             distance_reward += 0.8/alpha
-        sensor_penalty = self._compute_sensor_penalty2()
+        sensor_penalty = self._compute_sensor_penalty()
         overall_reward = alpha * distance_reward + beta * sensor_penalty
         # print(overall_reward)
         self.accu_reward += overall_reward
@@ -121,11 +121,14 @@ class VRepEnv:
         '''
         observation = self.rob.read_irs()
         observation = [observation[i] for i in [1, 3, 5, 7]]  # reading only sensors: backC, frontRR,  frontC, frontLL
-        observation = [0.25 if observation[i]==False else observation[i] for i in range(len(observation))]  # false -> 1
+        observation = [0.2 if observation[i]==False else observation[i] for i in range(len(observation))]  # false -> 0.2
+        # we need to introduce a threshold s.t. only distances below 0.15 are counted. Otherwise the distances
+        # will OFTEN be triggered when just moving in an empy plane because of the tilt of the robot.
+        observation = [0.2 if observation[i] > 0.15 else observation[i] for i in range(len(observation))]
         return observation
 
-    def _compute_sensor_penalty2(self):
-        errors = np.array([0.25-self.observations[i] for i in range(len(self.observations))])
+    def _compute_sensor_penalty(self):
+        errors = np.array([0.2-self.observations[i] for i in range(len(self.observations))])
         # give bonus if no sensor is triggered
         if errors.sum() == 0:
             return 0.5
