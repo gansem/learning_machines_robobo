@@ -102,7 +102,7 @@ class VRepEnv:
             "accu_v_measure_sensor_distance": self.accu_v_measure_sensor_distance,
             "accu_reward": self.accu_reward
             }, ignore_index=True)
-        print(f"\n-- action_index: {action_index} --\nobservations: {self.observations} \nreward: {overall_reward} \nobject in range: {in_object_range} \nv_measure_calc_distance: {self.v_measure_calc_distance}, \nv_measure_sensor_distance: {self.v_measure_sensor_distance} \naccu_v_measure_sensor_distance: {self.accu_v_measure_sensor_distance} \nv_distance_reward: {distance_reward} \nself.accu_reward: {self.accu_reward}")
+        print(f"\n-- action_index: {action_index} --\nobservations: {self.observations} \nreward: {overall_reward} \nobject in range: {in_object_range} \nv_measure_calc_distance: {self.v_measure_calc_distance}, \nv_measure_sensor_distance: {self.v_measure_sensor_distance} \naccu_v_measure_sensor_distance: {self.accu_v_measure_sensor_distance} \nv_distance_reward: {distance} \nself.accu_reward: {self.accu_reward}")
 
         # plot learning at the end of episode
         if done:
