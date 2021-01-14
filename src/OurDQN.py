@@ -56,7 +56,7 @@ class OurDQN(OffPolicyRLModel):
     :param n_cpu_tf_sess: (int) The number of threads for TensorFlow operations
         If None, the number of cpu of the current machine will be used.
     """
-    def __init__(self, policy, env, gamma=0.99, learning_rate=5e-4, buffer_size=50000, exploration_fraction=0.01,
+    def __init__(self, policy, env, gamma=0.99, learning_rate=5e-4, buffer_size=50000, exploration_fraction=0.0001,
                  exploration_final_eps=0.001, exploration_initial_eps=1.0, train_freq=1, batch_size=32, double_q=True,
                  learning_starts=1000, target_network_update_freq=500, prioritized_replay=False,
                  prioritized_replay_alpha=0.6, prioritized_replay_beta0=0.4, prioritized_replay_beta_iters=None,
@@ -218,7 +218,7 @@ class OurDQN(OffPolicyRLModel):
                     action = self.act(np.array(obs)[None], update_eps=update_eps, **kwargs)[0]
                 env_action = action
                 reset = False
-                new_obs, rew, done, info = self.env.step(env_action)
+                new_obs, rew, done, info = self.env.step(env_action, update_eps)
 
                 self.num_timesteps += 1
 

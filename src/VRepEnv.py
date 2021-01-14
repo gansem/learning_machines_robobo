@@ -41,7 +41,7 @@ class VRepEnv:
 
         return self.observations
 
-    def step(self, action_index):
+    def step(self, action_index, epsilon=0):
         """Performs the action in the environment and returns the new observations (state), reward, done (?) and info(?)"""
         # -----Performin action
         action = self.actions[action_index]
@@ -100,9 +100,10 @@ class VRepEnv:
             "v_measure_sensor_distance": self.v_measure_sensor_distance,
             "v_distance_reward": distance,
             "accu_v_measure_sensor_distance": self.accu_v_measure_sensor_distance,
-            "accu_reward": self.accu_reward
+            "accu_reward": self.accu_reward,
+            "epsilon": epsilon,
             }, ignore_index=True)
-        print(f"\n-- action_index: {action_index} --\nobservations: {self.observations} \nreward: {overall_reward} \nobject in range: {in_object_range} \nv_measure_calc_distance: {self.v_measure_calc_distance}, \nv_measure_sensor_distance: {self.v_measure_sensor_distance} \naccu_v_measure_sensor_distance: {self.accu_v_measure_sensor_distance} \nv_distance_reward: {distance} \nself.accu_reward: {self.accu_reward}")
+        print(f"\n-- action_index: {action_index} --\nobservations: {self.observations} \nreward: {overall_reward} \nobject in range: {in_object_range} \nv_measure_calc_distance: {self.v_measure_calc_distance}, \nv_measure_sensor_distance: {self.v_measure_sensor_distance} \naccu_v_measure_sensor_distance: {self.accu_v_measure_sensor_distance} \nv_distance_reward: {distance} \nself.accu_reward: {self.accu_reward} \nepsilon: {epsilon}")
 
         # plot learning at the end of episode
         if done:
