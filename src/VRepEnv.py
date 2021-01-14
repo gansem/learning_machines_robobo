@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+import info
 
 class VRepEnv:
     """Class to plug the VRep simulator environment into the Stable - baseline DQN algorithm."""
@@ -16,7 +16,7 @@ class VRepEnv:
         :param actions: list of actions. Each action is a four-tuple (left_speed, right_speed, duration, direction(-1=backwards, 1=forward))
         :param n_observations: number of sensors
         """
-        self.rob = robobo.SimulationRobobo().connect(address='127.0.0.1', port=19997)
+        self.rob = robobo.SimulationRobobo(info.client).connect(address=info.ip, port=19997)
         # using action and observation spaces of Gym to minimize code alterations.
         self.actions = actions
         self.action_space = Discrete(len(actions))
@@ -30,6 +30,7 @@ class VRepEnv:
         self.v_measure_sensor_distance = 0
         self.accu_reward = 0
         self.accu_v_measure_sensor_distance = 0
+        # self.v_distance_reward = 0
         self.episode_counter = 0
 
     def reset(self):
@@ -76,8 +77,10 @@ class VRepEnv:
             distance_reward *= 40
         sensor_penalty = self._compute_sensor_penalty()
         overall_reward = alpha * distance_reward + beta * sensor_penalty
-        # print(overall_reward)
+
+
         self.accu_reward += overall_reward
+        # self.v_distance_reward += distance_reward
 
         # if time passed supersedes threshold, stop episode
         done = False
@@ -94,21 +97,24 @@ class VRepEnv:
             "object_in_range": in_object_range,
             "v_measure_calc_distance": self.v_measure_calc_distance,
             "v_measure_sensor_distance": self.v_measure_sensor_distance,
+            "v_distance_reward": distance_reward,
             "accu_v_measure_sensor_distance": self.accu_v_measure_sensor_distance,
             "accu_reward": self.accu_reward
             }, ignore_index=True)
-        print(f"\n-- action_index: {action_index} --\nobservations: {self.observations} \nreward: {overall_reward} \nobject in range: {in_object_range} \nv_measure_calc_distance: {self.v_measure_calc_distance}, \nv_measure_sensor_distance: {self.v_measure_sensor_distance} \naccu_v_measure_sensor_distance: {self.accu_v_measure_sensor_distance} \nself.accu_reward: {self.accu_reward}")
+        print(f"\n-- action_index: {action_index} --\nobservations: {self.observations} \nreward: {overall_reward} \nobject in range: {in_object_range} \nv_measure_calc_distance: {self.v_measure_calc_distance}, \nv_measure_sensor_distance: {self.v_measure_sensor_distance} \naccu_v_measure_sensor_distance: {self.accu_v_measure_sensor_distance} \nv_distance_reward: {distance_reward} \nself.accu_reward: {self.accu_reward}")
 
         # plot learning at the end of episode
         if done:
+            # write dataframe to disk
+            self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/learning_progress.tsv', sep='\t')
             # self.plot_learning()  # TODO: this probably takes a lot of time from learning and we can do it after.
+            
+            # validation measures
             self.v_measure_calc_distance = 0
             self.accu_v_measure_sensor_distance = 0
+            # self.accu_distance_reward = 0
             self.accu_reward = 0
             self.episode_counter += 1
-
-            # write dataframe to disk
-            self.df.to_csv('learning_progress.tsv', sep='\t')
 
         return self.observations, overall_reward, done, {}
 
@@ -152,5 +158,5 @@ class VRepEnv:
         plt.figure()
         sns.lineplot(data=melt, x='index', y='value', hue='variable')
         # sns.lineplot(x=[i for i in range(self.episode_counter)], y=[r,s])
-        plt.savefig(f"learning_{episode_index}.png")
+        plt.savefig(f"results/{info.task}/{info.user}/{info.take}/scene_{info.scene}/learning_{episode_index}.png")
         plt.clf()

@@ -18,7 +18,7 @@ class OurMlpPolicy(FeedForwardPolicy):
     :param _kwargs: (dict) Extra keyword arguments for the nature CNN feature extraction
     """
 
-    def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, layers=[8, 8],
+    def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, layers=[5, 5],
                  reuse=False, obs_phs=None, dueling=True, **_kwargs):
         super(OurMlpPolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse, layers=layers,
                                         feature_extraction="mlp", obs_phs=obs_phs, dueling=dueling,
