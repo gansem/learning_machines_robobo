@@ -101,7 +101,7 @@ class VRepEnv:
 
         # plot learning at the end of episode
         if done:
-            self.plot_learning()  # TODO: this probably takes a lot of time from learning and we can do it after.
+            # self.plot_learning()  # TODO: this probably takes a lot of time from learning and we can do it after.
             self.v_measure_calc_distance = 0
             self.accu_v_measure_sensor_distance = 0
             self.accu_reward = 0
