@@ -325,7 +325,7 @@ class OurDQN(OffPolicyRLModel):
                                           int(100 * self.exploration.value(self.num_timesteps)))
                     logger.dump_tabular()
                 if self.num_timesteps % 3600 == 0:
-                    self.save(model_saving_path+str('_'+self.num_timesteps/7200)+'.model')
+                    self.save(model_saving_path+'_'+str(self.num_timesteps/7200)+'.model')
 
         callback.on_training_end()
         return self
