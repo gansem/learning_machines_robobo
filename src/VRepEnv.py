@@ -68,8 +68,9 @@ class VRepEnv:
 
         # ------ Calculating reward
         # calculate distance reward with euclidean distance. Negative if action is going backwards
-        distance_reward = action[3]*math.sqrt((stop_position[0] - start_position[0])**2
+        distance = math.sqrt((stop_position[0] - start_position[0])**2
                                               + (stop_position[1] - start_position[1])**2)
+        distance_reward = action[3]*distance
         alpha = 1.0  # TODO: figure out proper scalars
         beta = 1.0
         # get bonus if going straight. otherwise it just lears to turn in a circle
@@ -97,7 +98,7 @@ class VRepEnv:
             "object_in_range": in_object_range,
             "v_measure_calc_distance": self.v_measure_calc_distance,
             "v_measure_sensor_distance": self.v_measure_sensor_distance,
-            "v_distance_reward": distance_reward,
+            "v_distance_reward": distance,
             "accu_v_measure_sensor_distance": self.accu_v_measure_sensor_distance,
             "accu_reward": self.accu_reward
             }, ignore_index=True)
