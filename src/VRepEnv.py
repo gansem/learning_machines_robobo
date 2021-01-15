@@ -145,20 +145,3 @@ class VRepEnv:
         errors[2] = 1.5*errors[2]
         sum = errors.sum()/4
         return -sum + 4
-
-    def plot_learning(self, episode_index=0):
-        # add only the rewards obtained when object was detected
-        _df = self.df[self.df['object_in_range'] == 1]
-        _df.reset_index(inplace=True)
-        # melt
-        melt = _df.melt(id_vars='index', value_vars=['reward', 'v_measure_calc_distance', 'v_measure_sensor_distance', 'accu_reward', 'accu_v_measure_sensor_distance'])
-
-        # r = np.sum(self.accu_reward)
-        # s = np.sum(self.accu_v_measure_sensor_distance)
-
-        # plot
-        plt.figure()
-        sns.lineplot(data=melt, x='index', y='value', hue='variable')
-        # sns.lineplot(x=[i for i in range(self.episode_counter)], y=[r,s])
-        plt.savefig(f"results/{info.task}/{info.user}/{info.take}/scene_{info.scene}/learning_{episode_index}.png")
-        plt.clf()
