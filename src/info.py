@@ -1,6 +1,6 @@
 import os
 
-client = '#0'
+client = ''
 ip = '127.0.0.1'
 
 

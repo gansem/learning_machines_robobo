@@ -14,7 +14,7 @@ class VRepEnv:
         :param actions: list of actions. Each action is a four-tuple (left_speed, right_speed, duration, direction(-1=backwards, 1=forward))
         :param n_observations: number of sensors
         """
-        self.rob = robobo.SimulationRobobo(info.client).connect(address=info.ip, port=19997)
+        self.rob = robobo.SimulationRobobo(info.client).connect(address='100.68.1.209', port=19997)
         # using action and observation spaces of Gym to minimize code alterations.
         self.actions = actions
         self.action_space = Discrete(len(actions))
@@ -39,7 +39,7 @@ class VRepEnv:
 
         return self.observations
 
-    def step(self, action_index, task, epsilon=0):
+    def step(self, action_index, task=1, epsilon=0):
         """
         Performs the action in the environment and returns the new observations (state), reward, done (?) and info(?)
 
