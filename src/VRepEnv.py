@@ -3,16 +3,14 @@ from gym.spaces import Discrete, Box
 import math
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 import info
+
 
 class VRepEnv:
     """Class to plug the VRep simulator environment into the Stable - baseline DQN algorithm."""
 
     def __init__(self, actions, n_observations):
         """
-
         :param actions: list of actions. Each action is a four-tuple (left_speed, right_speed, duration, direction(-1=backwards, 1=forward))
         :param n_observations: number of sensors
         """
@@ -22,7 +20,7 @@ class VRepEnv:
         self.action_space = Discrete(len(actions))
         self.rob.play_simulation()
         self.observations = self.get_sensor_observations()
-        self.observation_space = Box(low=0.0, high=1.0, shape=(n_observations,))  # low and high depend on sensor values + normalization. Need to adjust.
+        self.observation_space = Box(low=0.0, high=1.0, shape=(n_observations,))
         self.time_per_episode = 20000  # 20 seconds
         self.time_passed = 0
         self.df = pd.DataFrame()
@@ -30,20 +28,27 @@ class VRepEnv:
         self.v_measure_sensor_distance = 0
         self.accu_reward = 0
         self.accu_v_measure_sensor_distance = 0
-        # self.v_distance_reward = 0
         self.episode_counter = 0
 
     def reset(self):
-        "Done at every episode end"
-        # self.rob.stop_world()
+        '''
+        Done at every episode end
+        '''
         self.time_passed = 0
         print('episode done')
 
         return self.observations
 
-    def step(self, action_index, epsilon=0):
-        """Performs the action in the environment and returns the new observations (state), reward, done (?) and info(?)"""
-        # -----Performin action
+    def step(self, action_index, task, epsilon=0):
+        """
+        Performs the action in the environment and returns the new observations (state), reward, done (?) and info(?)
+
+        :param action_index: Index of the action that should be executed.
+        :param task: which task is currently performed [1, 2, 3]
+        :param epsilon: Current epsilon (for epsilon greedy; used here just for printing)
+        :return: tuple of observed state, observed reward, wheter the episode is done and information (not used here)
+        """
+        # ----- Performing action
         action = self.actions[action_index]
         # save starting position
         start_position = self.rob.position()
@@ -54,34 +59,15 @@ class VRepEnv:
         # save stopping ir readings for relevant sensors
         self.observations = self.get_sensor_observations()
 
-        # ------ Getting validation metrics
-        in_object_range = False
-        # if any IRS detects an object, add to validity measure
-        if any(self.rob.read_irs()):
-            in_object_range = True
-        # add maximum +reward
-        # distance = time (ms) * speed (?)
-        self.v_measure_calc_distance += (action[3] * np.mean([action[0], action[1]]))/10
-        # calculate the inverse sensor distance as a sum
-        self.v_measure_sensor_distance = np.sum([(0.2-x) for x in self.rob.read_irs()])
-        self.accu_v_measure_sensor_distance += self.v_measure_sensor_distance
-
         # ------ Calculating reward
-        # calculate distance reward with euclidean distance. Negative if action is going backwards
-        distance = math.sqrt((stop_position[0] - start_position[0])**2
-                                              + (stop_position[1] - start_position[1])**2)
-        distance_reward = action[3]*distance
-        alpha = 1.0  # TODO: figure out proper scalars
-        beta = 1.0
-        # get bonus if going straight. otherwise it just lears to turn in a circle
-        if action[0] == action[1] and action[0] > 0:
-            distance_reward *= 40
-        sensor_penalty = self._compute_sensor_penalty()
-        overall_reward = alpha * distance_reward + beta * sensor_penalty
+        distance = math.sqrt((stop_position[0] - start_position[0])**2 + (stop_position[1] - start_position[1])**2)
+        reward = self.get_reward(action, distance, task)
+        self.accu_reward += reward
 
-
-        self.accu_reward += overall_reward
-        # self.v_distance_reward += distance_reward
+        # ------ Getting validation metrics
+        validation_metrics = self.get_validation_metrics(task, action_index, reward, distance, epsilon)
+        # write to dataframe
+        self.df = self.df.append(validation_metrics, ignore_index=True)
 
         # if time passed supersedes threshold, stop episode
         done = False
@@ -89,43 +75,25 @@ class VRepEnv:
         if self.time_passed >= self.time_per_episode:
             done = True
 
-        # write to dataframe
-        self.df = self.df.append({
-            "action_index": int(action_index),
-            "episode_index": int(self.episode_counter),
-            "observations:": self.observations,
-            "reward": overall_reward,
-            "object_in_range": in_object_range,
-            "v_measure_calc_distance": self.v_measure_calc_distance,
-            "v_measure_sensor_distance": self.v_measure_sensor_distance,
-            "v_distance_reward": distance,
-            "accu_v_measure_sensor_distance": self.accu_v_measure_sensor_distance,
-            "accu_reward": self.accu_reward,
-            "epsilon": epsilon,
-            }, ignore_index=True)
-        print(f"\n-- action_index: {action_index} --\nobservations: {self.observations} \nreward: {overall_reward} \nobject in range: {in_object_range} \nv_measure_calc_distance: {self.v_measure_calc_distance}, \nv_measure_sensor_distance: {self.v_measure_sensor_distance} \naccu_v_measure_sensor_distance: {self.accu_v_measure_sensor_distance} \nv_distance_reward: {distance} \nself.accu_reward: {self.accu_reward} \nepsilon: {epsilon}")
-
-        # plot learning at the end of episode
+        # reset metrics after each episode
         if done:
             # write dataframe to disk
-            self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/learning_progress.tsv', sep='\t')
-            # self.plot_learning()  # TODO: this probably takes a lot of time from learning and we can do it after.
+            self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/learning_progress.tsv', sep='\t', mode='w+')
             
             # validation measures
             self.v_measure_calc_distance = 0
             self.accu_v_measure_sensor_distance = 0
-            # self.accu_distance_reward = 0
             self.accu_reward = 0
             self.episode_counter += 1
 
-        return self.observations, overall_reward, done, {}
+        return self.observations, reward, done, {}
 
     def get_rob_position(self):
         return self.rob.position()
 
     def get_sensor_observations(self):
-        '''Reads sensor information and returns it. If distance too big and sensor gives False then this value becomes 1.
-        We might want to introduce a normalization step here.
+        '''
+        Reads sensor information and returns normalized an thresholded values.
         '''
         observation = self.rob.read_irs()
         observation = [observation[i] for i in [1, 3, 5, 7]]  # reading only sensors: backC, frontRR,  frontC, frontLL
@@ -135,30 +103,72 @@ class VRepEnv:
         observation = [0.15 if observation[i] > 0.15 else observation[i] for i in range(len(observation))]
         return observation
 
-    def _compute_sensor_penalty(self):
+    def _compute_sensor_penalty_task1(self):
         errors = np.array([1.5/math.sqrt(self.observations[i]) for i in range(len(self.observations))])
-        # give bonus if no sensor is triggered
-        #if errors.sum() == 0:
-        #    return 0.5
+
         # give more importance to the front sensors
         errors[0] = 0.5*errors[0]
         errors[2] = 1.5*errors[2]
         sum = errors.sum()/4
         return -sum + 4
 
-    def plot_learning(self, episode_index=0):
-        # add only the rewards obtained when object was detected
-        _df = self.df[self.df['object_in_range'] == 1]
-        _df.reset_index(inplace=True)
-        # melt
-        melt = _df.melt(id_vars='index', value_vars=['reward', 'v_measure_calc_distance', 'v_measure_sensor_distance', 'accu_reward', 'accu_v_measure_sensor_distance'])
+    def get_reward(self, action, travelled_distance, task):
+        if task==1:
+            return self._get_reward_task1(action, travelled_distance)
 
-        # r = np.sum(self.accu_reward)
-        # s = np.sum(self.accu_v_measure_sensor_distance)
+    def _get_reward_task1(self, action, travelled_distance):
+        distance_reward = action[3] * travelled_distance
 
-        # plot
-        plt.figure()
-        sns.lineplot(data=melt, x='index', y='value', hue='variable')
-        # sns.lineplot(x=[i for i in range(self.episode_counter)], y=[r,s])
-        plt.savefig(f"results/{info.task}/{info.user}/{info.take}/scene_{info.scene}/learning_{episode_index}.png")
-        plt.clf()
+        # get bonus if going straight. otherwise it just lears to turn in a circle
+        if action[0] == action[1] and action[0] > 0:
+            distance_reward *= 40
+        sensor_penalty = self._compute_sensor_penalty_task1()
+
+        return distance_reward + sensor_penalty
+
+    def get_validation_metrics(self, task, action_index, reward, distance, epsilon):
+        '''
+        Creates an entry for a data frame with metrics for a specific task and returns it.
+        :param task: Task for which to collect the metrics. One of [1, 2, 3]
+        :param action_index: Index of the current action in the action space.
+        :param reward: reward currently observed.
+        :param distance: travelled distance in the current step.
+        :param epsilon: current epsilon.
+        :return: entry with metrics
+        '''
+        action = self.actions[action_index]
+        if task == 1:
+            return self._get_validation_metrics_task1(action, action_index, reward, distance, epsilon)
+
+    def _get_validation_metrics_task1(self, action, action_index, reward, distance, epsilon):
+        in_object_range = False
+        # if any IRS detects an object, add to validity measure
+        if any(self.rob.read_irs()):
+            in_object_range = True
+        # add maximum +reward
+        # distance = time (ms) * speed (?)
+        self.v_measure_calc_distance += (action[3] * np.mean([action[0], action[1]])) / 10
+        # calculate the inverse sensor distance as a sum
+        self.v_measure_sensor_distance = np.sum([(0.2 - x) for x in self.rob.read_irs()])
+        self.accu_v_measure_sensor_distance += self.v_measure_sensor_distance
+
+        # write to dataframe
+        entry = {
+            "action_index": int(action_index),
+            "episode_index": int(self.episode_counter),
+            "observations:": self.observations,
+            "reward": reward,
+            "object_in_range": in_object_range,
+            "v_measure_calc_distance": self.v_measure_calc_distance,
+            "v_measure_sensor_distance": self.v_measure_sensor_distance,
+            "v_distance_reward": distance,
+            "accu_v_measure_sensor_distance": self.accu_v_measure_sensor_distance,
+            "accu_reward": self.accu_reward,
+            "epsilon": epsilon,
+        }
+        print(f"\n-- action_index: {action_index} --\nobservations: {self.observations} \nreward: {reward} \n"
+              f"object in range: {in_object_range} \nv_measure_calc_distance: {self.v_measure_calc_distance}, \n"
+              f"v_measure_sensor_distance: {self.v_measure_sensor_distance} \n"
+              f"accu_v_measure_sensor_distance: {self.accu_v_measure_sensor_distance} \n"
+              f"v_distance_reward: {distance} \nself.accu_reward: {self.accu_reward} \nepsilon: {epsilon}")
+        return entry
