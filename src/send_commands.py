@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 from __future__ import print_function
 
 import time
@@ -19,13 +19,14 @@ def main():
     signal.signal(signal.SIGINT, terminate_program)
 
     # rob = robobo.HardwareRobobo(camera=True).connect(address="192.168.1.7")
-    rob = robobo.SimulationRobobo().connect(address='192.168.1.6', port=19997)
+    rob = robobo.SimulationRobobo().connect(address='100.68.1.209', port=19997)
 
     rob.play_simulation()
 
     # Following code moves the robot
     for i in range(10):
             print("robobo is at {}".format(rob.position()))
+            print("ROB Irs: {}".format(np.log(np.array(rob.read_irs())) / 10))
             rob.move(5, 5, 2000)
    
     print("robobo is at {}".format(rob.position()))
