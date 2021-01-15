@@ -39,7 +39,7 @@ class VRepEnv:
 
         return self.observations
 
-    def step(self, action_index, task, epsilon=0):
+    def step(self, action_index, task=1, epsilon=0):
         """
         Performs the action in the environment and returns the new observations (state), reward, done (?) and info(?)
 

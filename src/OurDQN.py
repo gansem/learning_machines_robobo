@@ -218,7 +218,7 @@ class OurDQN(OffPolicyRLModel):
                     action = self.act(np.array(obs)[None], update_eps=update_eps, **kwargs)[0]
                 env_action = action
                 reset = False
-                new_obs, rew, done, info = self.env.step(env_action, update_eps)
+                new_obs, rew, done, info = self.env.step(env_action, epsilon=update_eps)
 
                 self.num_timesteps += 1
 
