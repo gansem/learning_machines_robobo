@@ -4,7 +4,7 @@ import math
 import numpy as np
 import pandas as pd
 import info
-
+import cv2
 
 class VRepEnv:
     """Class to plug the VRep simulator environment into the Stable - baseline DQN algorithm."""
@@ -14,7 +14,7 @@ class VRepEnv:
         :param actions: list of actions. Each action is a four-tuple (left_speed, right_speed, duration, direction(-1=backwards, 1=forward))
         :param n_observations: number of sensors
         """
-        self.rob = robobo.SimulationRobobo(info.client).connect(address='100.68.1.209', port=19997)
+        self.rob = robobo.SimulationRobobo(info.client).connect(address='127.0.0.1', port=19997)
         # using action and observation spaces of Gym to minimize code alterations.
         self.actions = actions
         self.action_space = Discrete(len(actions))
@@ -58,6 +58,7 @@ class VRepEnv:
         stop_position = self.rob.position()
         # save stopping ir readings for relevant sensors
         self.observations = self.get_sensor_observations()
+        image = self.rob.get_image_front()
 
         # ------ Calculating reward
         distance = math.sqrt((stop_position[0] - start_position[0])**2 + (stop_position[1] - start_position[1])**2)
@@ -91,16 +92,41 @@ class VRepEnv:
     def get_rob_position(self):
         return self.rob.position()
 
+    def get_camera_observations(self):
+        image = self.rob.get_image_front()
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+        low = np.array([25, 52, 72])
+        high = np.array([102, 255, 255])
+        mask = cv2.inRange(hsv, low, high)
+
+        left = mask[:, 0:25]
+        mid_left = mask[:, 25:51]
+        mid = mask[:, 51:77]
+        mid_right = mask[:, 77:103]
+        right = mask[:, 103:]
+
+        cam_values = [left, mid_left, mid, mid_right, right]
+
+        return [(np.sum(value) / (value.shape[0] * value.shape[1]))/255 for value in cam_values]
+
     def get_sensor_observations(self):
         '''
         Reads sensor information and returns normalized an thresholded values.
         '''
-        observation = self.rob.read_irs()
-        observation = [observation[i] for i in [1, 3, 5, 7]]  # reading only sensors: backC, frontRR,  frontC, frontLL
-        observation = [0.15 if observation[i]==False else observation[i] for i in range(len(observation))]  # false -> 0.2
-        # we need to introduce a threshold s.t. only distances below 0.15 are counted. Otherwise the distances
-        # will OFTEN be triggered when just moving in an empy plane because of the tilt of the robot.
-        observation = [0.15 if observation[i] > 0.15 else observation[i] for i in range(len(observation))]
+
+        #Uncomment section below to also use fron sensor
+        # observation = self.rob.read_irs()
+        # observation = observation[5]  # frontC
+        # observation = [0.15 if observation[i]==False else observation[i] for i in range(len(observation))]  # false -> 0.2
+        # # we need to introduce a threshold s.t. only distances below 0.15 are counted. Otherwise the distances
+        # # will OFTEN be triggered when just moving in an empy plane because of the tilt of the robot.
+        # observation = [0.15 if observation[i] > 0.15 else observation[i] for i in range(len(observation))]
+        # cam_obs = self.get_camera_observations()
+        # observation = [observation.append(cam_ob) for cam_ob in cam_obs]
+
+        cam_obs = self.get_camera_observations()  # uncomment to use only camera
+        observation = cam_obs  # uncomment to use only camera
         return observation
 
     def _compute_sensor_penalty_task1(self):
