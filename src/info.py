@@ -23,11 +23,11 @@ actions = [
 # ---
 
 task = 'obstacle_avoidance'
-user = 'ety'
-take = 'take_03'
-scene = 'obs_'
+user = 'andi'
+take = 'take_02'
+scene = 'scene_4'
 model_save_file = f'./results/{task}/{user}/{take}/{scene}'
-model_load_file = f'./results/{task}/{user}/{take}/scene_5_0150.model'
+model_load_file = f'./results/{task}/{user}/{take}/scene_4_0650.model'
 
 # create folder if they do not exist
 if not os.path.exists(f'./results/{task}'):
