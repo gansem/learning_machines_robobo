@@ -15,6 +15,7 @@ def terminate_program(signal_number, frame):
     print("Ctrl-C received, terminating program")
     sys.exit(1)
 
+
 def main():
     signal.signal(signal.SIGINT, terminate_program)
 
@@ -25,10 +26,10 @@ def main():
 
     # Following code moves the robot
     for i in range(10):
-            print("robobo is at {}".format(rob.position()))
-            print("ROB Irs: {}".format(np.log(np.array(rob.read_irs())) / 10))
-            rob.move(5, 5, 2000)
-   
+        print("robobo is at {}".format(rob.position()))
+        print("ROB Irs: {}".format(np.log(np.array(rob.read_irs())) / 10))
+        rob.move(5, 5, 2000)
+
     print("robobo is at {}".format(rob.position()))
     rob.sleep(1)
 
@@ -47,18 +48,18 @@ def main():
 
     # Following code gets an image from the camera
     image = rob.get_image_front()
-    cv2.imwrite("test_pictures.png",image)
+    cv2.imwrite("test_pictures.png", image)
 
     time.sleep(0.1)
 
     # IR reading
     for i in range(1000000):
-        print("ROB Irs: {}".format(np.log(np.array(rob.read_irs()))/10))
+        print("ROB Irs: {}".format(np.log(np.array(rob.read_irs())) / 10))
         time.sleep(0.1)
 
     # pause the simulation and read the collected food
     rob.pause_simulation()
-    
+
     # Stopping the simualtion resets the environment
     rob.stop_world()
 
