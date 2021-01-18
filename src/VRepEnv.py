@@ -27,6 +27,7 @@ class VRepEnv:
         self.df = pd.DataFrame()
         self.accu_reward = 0
         self.episode_counter = 0
+        self.food_names = ['Food', 'Food0', 'Food1', 'Food2', 'Food3', 'Food4', 'Food5']  # TOdO: make this generic for arbitraty foods
 
     def reset(self):
         '''
@@ -64,16 +65,16 @@ class VRepEnv:
         print('\n---- action:', action_index)
         print('reward:', reward)
         print('elapsed time:', self.time_passed)
+        print('collected food:', self.rob.collected_food())
 
         # ------ Stopping and resetting
         done = False
-        #Todo: implement stopping condition
-        #dummy function
-        if self.time_passed > 3000:
+        if self.rob.collected_food() == len(self.food_names):
             done = True
 
         # reset metrics after each episode
         if done:
+            print('episode done')
             # save the normalized time in dataframe
             entry = {'avg_food_distance': self.get_avg_food_distance(),
                      'time_passed': self.time_passed,
@@ -183,10 +184,9 @@ class VRepEnv:
         Calculates the average distance of the food objects in the scene. Assuming that there are always 7 food objects.
         :return: Average distance of food objects
         '''
-        food_names = ['Food', 'Food0', 'Food1', 'Food2', 'Food3', 'Food4', 'Food5']  # TOdO: make this generic for arbitraty foods
         food_positions = []
         # collect positions of all the foods
-        for food in food_names:
+        for food in self.food_names:
             food_handle = vrep.unwrap_vrep(vrep.simxGetObjectHandle(self.rob._clientID, food, vrep.simx_opmode_blocking))
             food_position = vrep.unwrap_vrep(vrep.simxGetObjectPosition(self.rob._clientID, food_handle, -1, vrep.simx_opmode_blocking))
             food_positions.append(food_position)
