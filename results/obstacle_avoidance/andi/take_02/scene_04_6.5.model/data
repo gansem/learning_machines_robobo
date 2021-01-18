@@ -1,0 +1,53 @@
+{
+    "double_q": true,
+    "param_noise": false,
+    "learning_starts": 1000,
+    "train_freq": 1,
+    "prioritized_replay": false,
+    "prioritized_replay_eps": 1e-06,
+    "batch_size": 32,
+    "target_network_update_freq": 500,
+    "prioritized_replay_alpha": 0.6,
+    "prioritized_replay_beta0": 0.4,
+    "prioritized_replay_beta_iters": null,
+    "exploration_final_eps": 0.01,
+    "exploration_fraction": 0.2,
+    "learning_rate": 0.0005,
+    "gamma": 0.99,
+    "verbose": 0,
+    "observation_space": {
+        ":type:": "<class 'gym.spaces.box.Box'>",
+        ":serialized:": "gASVoAEAAAAAAACMDmd5bS5zcGFjZXMuYm94lIwDQm94lJOUKYGUfZQojAVkdHlwZZSMBW51bXB5lIwFZHR5cGWUk5SMAmY0lImIh5RSlChLA4wBPJROTk5K/////0r/////SwB0lGKMBXNoYXBllEsEhZSMA2xvd5SMFW51bXB5LmNvcmUubXVsdGlhcnJheZSMDF9yZWNvbnN0cnVjdJSTlGgGjAduZGFycmF5lJOUSwCFlEMBYpSHlFKUKEsBSwSFlGgLiUMQAAAAAAAAAAAAAAAAAAAAAJR0lGKMBGhpZ2iUaBNoFUsAhZRoF4eUUpQoSwFLBIWUaAuJQxAAAIA/AACAPwAAgD8AAIA/lHSUYowNYm91bmRlZF9iZWxvd5RoE2gVSwCFlGgXh5RSlChLAUsEhZRoCIwCYjGUiYiHlFKUKEsDjAF8lE5OTkr/////Sv////9LAHSUYolDBAEBAQGUdJRijA1ib3VuZGVkX2Fib3ZllGgTaBVLAIWUaBeHlFKUKEsBSwSFlGgriUMEAQEBAZR0lGKMCl9ucF9yYW5kb22UTnViLg==",
+        "dtype": "float32",
+        "shape": [
+            4
+        ],
+        "low": "[0. 0. 0. 0.]",
+        "high": "[1. 1. 1. 1.]",
+        "bounded_below": "[ True  True  True  True]",
+        "bounded_above": "[ True  True  True  True]",
+        "_np_random": null
+    },
+    "action_space": {
+        ":type:": "<class 'gym.spaces.discrete.Discrete'>",
+        ":serialized:": "gASVhwAAAAAAAACME2d5bS5zcGFjZXMuZGlzY3JldGWUjAhEaXNjcmV0ZZSTlCmBlH2UKIwBbpRLA4wFc2hhcGWUKYwFZHR5cGWUjAVudW1weZSMBWR0eXBllJOUjAJpOJSJiIeUUpQoSwOMATyUTk5OSv////9K/////0sAdJRijApfbnBfcmFuZG9tlE51Yi4=",
+        "n": 3,
+        "shape": [],
+        "dtype": "int64",
+        "_np_random": null
+    },
+    "policy": {
+        ":type:": "<class 'abc.ABCMeta'>",
+        ":serialized:": "gASVIQAAAAAAAACMDE91ck1QTFBvbGljeZSMDE91ck1scFBvbGljeZSTlC4=",
+        "__module__": "OurMPLPolicy",
+        "__doc__": "\n    Policy object that implements DQN policy, using a MLP (2 layers of 64)\n\n    :param sess: (TensorFlow session) The current TensorFlow session\n    :param ob_space: (Gym Space) The observation space of the environment\n    :param ac_space: (Gym Space) The action space of the environment\n    :param n_env: (int) The number of environments to run\n    :param n_steps: (int) The number of steps to run for each environment\n    :param n_batch: (int) The number of batch to run (n_envs * n_steps)\n    :param reuse: (bool) If the policy is reusable or not\n    :param obs_phs: (TensorFlow Tensor, TensorFlow Tensor) a tuple containing an override for observation placeholder\n        and the processed observation placeholder respectively\n    :param dueling: (bool) if true double the output MLP to compute a baseline for action scores\n    :param _kwargs: (dict) Extra keyword arguments for the nature CNN feature extraction\n    ",
+        "__init__": "<function OurMlpPolicy.__init__ at 0x0000023FDCECB288>",
+        "__abstractmethods__": "frozenset()",
+        "_abc_impl": "<_abc_data object at 0x0000023FDB034900>"
+    },
+    "n_envs": 1,
+    "n_cpu_tf_sess": null,
+    "seed": null,
+    "_vectorize_action": false,
+    "policy_kwargs": {}
+}
