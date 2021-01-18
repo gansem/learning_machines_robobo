@@ -88,7 +88,7 @@ class VRepEnv:
         
         # write at every step
         if testing_model:
-            self.df.to_csv(f'results/{info.task}/smart_robobo_0650h/{info.scene}/learning_progress.tsv', sep='\t', mode='w+')
+            self.df.to_csv(f'results/{info.task}/smart_robobo_0300h/{info.scene}/learning_progress.tsv', sep='\t', mode='w+')
 
         return self.observations, reward, done, {}
 

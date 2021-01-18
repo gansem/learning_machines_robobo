@@ -4,6 +4,7 @@ from __future__ import print_function
 import time
 import numpy as np
 import pandas as pd
+import math
 import info
 
 import robobo
@@ -113,9 +114,14 @@ def main():
 
         # print actions (l_wheel speed | r_wheel speed | time moving (ms))
         print(f'action: {action_index}:\t{l}\t{r}\t{t}')
-
+        # save starting positionn (before move)
+        start_position = rob.position()
         # move robot
         rob.move(l, r, t)
+        # save finishing position (after move)
+        stop_position = rob.position()
+
+        distance = math.sqrt((stop_position[0] - start_position[0])**2 + (stop_position[1] - start_position[1])**2)
 
         df = df.append({
             "action_index": action_index,
@@ -126,7 +132,7 @@ def main():
             # TODO: v_measure_calc_distance in  VRepEnv has a mistake! action[3] = 1.. should be action[2]
             "v_measure_calc_distance": (1 * np.mean([action[0], action[1]]))/10,
             "v_measure_sensor_distance": np.sum([(0.2-x) for x in rob.read_irs()]),
-            # "v_distance_reward": distance,
+            "v_distance_reward": distance,
             # "accu_v_measure_sensor_distance": self.accu_v_measure_sensor_distance,
             # "accu_reward": self.accu_reward,
             # "epsilon": epsilon,
