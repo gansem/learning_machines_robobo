@@ -18,30 +18,15 @@ def main():
     signal.signal(signal.SIGINT, terminate_program)
 
     # rob = robobo.HardwareRobobo(camera=True).connect(address="192.168.1.7")
-    rob = robobo.SimulationRobobo().connect(address='127.0.0.1', port=19997)
+    rob = robobo.SimulationRobobo().connect(address='100.68.1.209', port=19997)
 
     rob.play_simulation()
 
-    # speed of wheels (+ direction)
-    l_wheel = 25
-    r_wheel = 25
-    # time spent moving (ms)
-    t_move = 500
-
-    # actual measure to check rewards against (max value)
-    v_measure = 0
-
-    # Following code moves the robot (forever)
-    while True:
-        # print("robobo is at {}".format(rob.position()))
-        rob.move(l_wheel, r_wheel, t_move)
-        print(f"ROB Irs: {rob.read_irs()}")
-
-        # if any IRS detects an object, add to validity measure
-        if any(rob.read_irs()):
-            v_measure += np.mean([l_wheel, r_wheel]) * t_move
-
-        
+    # Following code moves the robot
+    for i in range(10):
+            print("robobo is at {}".format(rob.position()))
+            print("ROB Irs: {}".format(np.log(np.array(rob.read_irs())) / 10))
+            rob.move(5, 5, 2000)
    
     print("robobo is at {}".format(rob.position()))
     rob.sleep(1)
