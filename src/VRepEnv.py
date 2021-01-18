@@ -6,7 +6,7 @@ import pandas as pd
 import info
 import cv2
 import vrep
-
+import random as rnd
 
 class VRepEnv:
     """Class to plug the VRep simulator environment into the Stable - baseline DQN algorithm."""
@@ -28,6 +28,7 @@ class VRepEnv:
         self.accu_reward = 0
         self.episode_counter = 0
         self.food_names = ['Food', 'Food0', 'Food1', 'Food2', 'Food3', 'Food4', 'Food5']  # TOdO: make this generic for arbitraty foods
+        self.food_eaten = 0
 
     def reset(self):
         '''
@@ -36,7 +37,6 @@ class VRepEnv:
         # validation measures
         self.accu_reward = 0
         self.time_passed = 0
-        # TODO: random reset of food blocks
 
         return self.observations
 
@@ -56,6 +56,7 @@ class VRepEnv:
         # save stopping ir readings for relevant sensors
         self.observations = self.get_camera_observations()
         self.time_passed += action[2]
+        self.food_eaten = self.rob.collected_food() - self.episode_counter * len(self.food_names)
 
         # ------ Calculating reward
         reward = self.get_reward()
@@ -65,16 +66,19 @@ class VRepEnv:
         print('\n---- action:', action_index)
         print('reward:', reward)
         print('elapsed time:', self.time_passed)
-        print('collected food:', self.rob.collected_food())
+        print('collected food:', self.food_eaten)
 
         # ------ Stopping and resetting
         done = False
-        if self.rob.collected_food() == len(self.food_names):
+        if self.food_eaten == len(self.food_names):
             done = True
 
         # reset metrics after each episode
         if done:
             print('episode done')
+            self.episode_counter += 1
+            self.food_eaten = 0
+            self._reset_food()
             # save the normalized time in dataframe
             entry = {'avg_food_distance': self.get_avg_food_distance(),
                      'time_passed': self.time_passed,
@@ -132,53 +136,6 @@ class VRepEnv:
         return 1
         raise NotImplementedError
 
-    # def get_validation_metrics(self, task, action_index, reward, distance, epsilon):
-    #     '''
-    #     Creates an entry for a data frame with metrics for a specific task and returns it.
-    #     :param task: Task for which to collect the metrics. One of [1, 2, 3]
-    #     :param action_index: Index of the current action in the action space.
-    #     :param reward: reward currently observed.
-    #     :param distance: travelled distance in the current step.
-    #     :param epsilon: current epsilon.
-    #     :return: entry with metrics
-    #     '''
-    #     action = self.actions[action_index]
-    #     if task == 1:
-    #         return self._get_validation_metrics_task1(action, action_index, reward, distance, epsilon)
-    #
-    # def _get_validation_metrics_task1(self, action, action_index, reward, distance, epsilon):
-    #     in_object_range = False
-    #     # if any IRS detects an object, add to validity measure
-    #     if any(self.rob.read_irs()):
-    #         in_object_range = True
-    #     # add maximum +reward
-    #     # distance = time (ms) * speed (?)
-    #     self.v_measure_calc_distance += (action[3] * np.mean([action[0], action[1]])) / 10
-    #     # calculate the inverse sensor distance as a sum
-    #     self.v_measure_sensor_distance = np.sum([(0.2 - x) for x in self.rob.read_irs()])
-    #     self.accu_v_measure_sensor_distance += self.v_measure_sensor_distance
-    #
-    #     # write to dataframe
-    #     entry = {
-    #         "action_index": int(action_index),
-    #         "episode_index": int(self.episode_counter),
-    #         "observations:": self.observations,
-    #         "reward": reward,
-    #         "object_in_range": in_object_range,
-    #         "v_measure_calc_distance": self.v_measure_calc_distance,
-    #         "v_measure_sensor_distance": self.v_measure_sensor_distance,
-    #         "v_distance_reward": distance,
-    #         "accu_v_measure_sensor_distance": self.accu_v_measure_sensor_distance,
-    #         "accu_reward": self.accu_reward,
-    #         "epsilon": epsilon
-    #     }
-    #     print(f"\n-- action_index: {action_index} --\nobservations: {self.observations} \nreward: {reward} \n"
-    #           f"object in range: {in_object_range} \nv_measure_calc_distance: {self.v_measure_calc_distance}, \n"
-    #           f"v_measure_sensor_distance: {self.v_measure_sensor_distance} \n"
-    #           f"accu_v_measure_sensor_distance: {self.accu_v_measure_sensor_distance} \n"
-    #           f"v_distance_reward: {distance} \nself.accu_reward: {self.accu_reward} \nepsilon: {epsilon}")
-    #     return entry
-
     def get_avg_food_distance(self):
         '''
         Calculates the average distance of the food objects in the scene. Assuming that there are always 7 food objects.
@@ -201,3 +158,19 @@ class VRepEnv:
                                            + (food_positions[i][1] - food_positions[j][1])**2))
 
         return np.array(distances).mean()
+
+    def _reset_food(self):
+        for food in self.food_names:
+            food_handle = vrep.unwrap_vrep(vrep.simxGetObjectHandle(self.rob._clientID, food, vrep.simx_opmode_blocking))
+            new_pos = vrep.unwrap_vrep(vrep.simxGetObjectPosition(self.rob._clientID, food_handle, -1, vrep.simx_opmode_blocking))
+            if new_pos[2] -1 > 0:
+                new_pos[2] -= 1  # reset height of food
+            # from provided script on canvas
+            new_pos[0] = ((rnd.random() * 2) - 4.1)
+            new_pos[1] = ((rnd.random() * 2) - 0.2)
+            # check if it is placed on the robot
+            while self.rob.position()[0] + 0.25 > new_pos[0] > self.rob.position()[0] - 0.25 \
+                    and self.rob.position()[1] + 0.25 > new_pos[1] > self.rob.position()[1] - 0.25:
+                new_pos[0] = ((rnd.random() * 2) - 4.1)
+                new_pos[1] = ((rnd.random() * 2) - 0.2)
+            vrep.simxSetObjectPosition(self.rob._clientID, food_handle, -1, new_pos, vrep.simx_opmode_blocking)
