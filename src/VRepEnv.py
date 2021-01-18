@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import info
 import cv2
+import vrep
 
 
 class VRepEnv:
@@ -208,3 +209,27 @@ class VRepEnv:
               f"accu_v_measure_sensor_distance: {self.accu_v_measure_sensor_distance} \n"
               f"v_distance_reward: {distance} \nself.accu_reward: {self.accu_reward} \nepsilon: {epsilon}")
         return entry
+
+    def get_avg_food_distance(self):
+        '''
+        Calculates the average distance of the food objects in the scene. Assuming that there are always 7 food objects.
+        :return: Average distance of food objects
+        '''
+        food_names = ['Food', 'Food0', 'Food1', 'Food2', 'Food3', 'Food4', 'Food5']  # TOdO: make this generic for arbitraty foods
+        food_positions = []
+        # collect positions of all the foods
+        for food in food_names:
+            food_handle = vrep.unwrap_vrep(vrep.simxGetObjectHandle(self.rob._clientID, food, vrep.simx_opmode_blocking))
+            food_position = vrep.unwrap_vrep(vrep.simxGetObjectPosition(self.rob._clientID, food_handle, -1, vrep.simx_opmode_blocking))
+            food_positions.append(food_position)
+
+        food_positions = np.array(food_positions)
+
+        # compute all distances in the 2D plane
+        distances = []
+        for i in range(len(food_positions)):
+            for j in range(i+1, len(food_positions)):
+                distances.append(math.sqrt((food_positions[i][0] - food_positions[j][0])**2
+                                           + (food_positions[i][1] - food_positions[j][1])**2))
+
+        return np.array(distances).mean()
