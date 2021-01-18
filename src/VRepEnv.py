@@ -6,6 +6,7 @@ import pandas as pd
 import info
 import cv2
 
+
 class VRepEnv:
     """Class to plug the VRep simulator environment into the Stable - baseline DQN algorithm."""
 
@@ -57,7 +58,7 @@ class VRepEnv:
         # save stopping position
         stop_position = self.rob.position()
         # save stopping ir readings for relevant sensors
-        self.observations = self.get_sensor_observations()
+        self.observations = self.get_observations(taks=task)
         image = self.rob.get_image_front()
 
         # ------ Calculating reward
@@ -92,6 +93,12 @@ class VRepEnv:
     def get_rob_position(self):
         return self.rob.position()
 
+    def get_observations(self, task):
+        if task == 1:
+            return self.get_sensor_observations()
+        if task == 2:
+            return self.get_camera_observations()
+
     def get_camera_observations(self):
         image = self.rob.get_image_front()
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -108,25 +115,28 @@ class VRepEnv:
 
         cam_values = [left, mid_left, mid, mid_right, right]
 
-        return [(np.sum(value) / (value.shape[0] * value.shape[1]))/255 for value in cam_values]
+        cam_obs = [(np.sum(value) / (value.shape[0] * value.shape[1]))/255 for value in cam_values]
+
+        # Uncomment section below to also use front sensor
+        # front_sensor = [self.get_sensor_observations()[2]]
+        # observation = [front_sensor.append(cam_ob) for cam_ob in cam_obs]
+
+        # uncomment to use only camera
+        observation = cam_obs
+
+        return observation
 
     def get_sensor_observations(self):
         '''
         Reads sensor information and returns normalized an thresholded values.
         '''
-
-        #Uncomment section below to also use fron sensor
-        # observation = self.rob.read_irs()
-        # observation = observation[5]  # frontC
-        # observation = [0.15 if observation[i]==False else observation[i] for i in range(len(observation))]  # false -> 0.2
-        # # we need to introduce a threshold s.t. only distances below 0.15 are counted. Otherwise the distances
-        # # will OFTEN be triggered when just moving in an empy plane because of the tilt of the robot.
-        # observation = [0.15 if observation[i] > 0.15 else observation[i] for i in range(len(observation))]
-        # cam_obs = self.get_camera_observations()
-        # observation = [observation.append(cam_ob) for cam_ob in cam_obs]
-
-        cam_obs = self.get_camera_observations()  # uncomment to use only camera
-        observation = cam_obs  # uncomment to use only camera
+        observation = self.rob.read_irs()
+        observation = [observation[i] for i in [1, 3, 5, 7]]  # reading only sensors: backC, frontRR,  frontC, frontLL
+        observation = [0.15 if observation[i] == False else observation[i] for i in
+                       range(len(observation))]  # false -> 0.15
+        # we need to introduce a threshold s.t. only distances below 0.15 are counted. Otherwise the distances
+        # will OFTEN be triggered when just moving in an empy plane because of the tilt of the robot.
+        observation = [0.15 if observation[i] > 0.15 else observation[i] for i in range(len(observation))]
         return observation
 
     def _compute_sensor_penalty_task1(self):
