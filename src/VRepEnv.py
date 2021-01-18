@@ -14,7 +14,7 @@ class VRepEnv:
         :param actions: list of actions. Each action is a four-tuple (left_speed, right_speed, duration, direction(-1=backwards, 1=forward))
         :param n_observations: number of sensors
         """
-        self.rob = robobo.SimulationRobobo(info.client).connect(address='100.68.1.209', port=19997)
+        self.rob = robobo.SimulationRobobo(info.client).connect(address=info.ip, port=19997)
         # using action and observation spaces of Gym to minimize code alterations.
         self.actions = actions
         self.action_space = Discrete(len(actions))
@@ -39,7 +39,7 @@ class VRepEnv:
 
         return self.observations
 
-    def step(self, action_index, task=1, epsilon=0):
+    def step(self, action_index, task=1, epsilon=0, testing_model=False):
         """
         Performs the action in the environment and returns the new observations (state), reward, done (?) and info(?)
 
@@ -76,7 +76,7 @@ class VRepEnv:
             done = True
 
         # reset metrics after each episode
-        if done:
+        if done and not testing_model:
             # write dataframe to disk
             self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/learning_progress.tsv', sep='\t', mode='w+')
             
@@ -85,6 +85,10 @@ class VRepEnv:
             self.accu_v_measure_sensor_distance = 0
             self.accu_reward = 0
             self.episode_counter += 1
+        
+        # write at every step
+        if testing_model:
+            self.df.to_csv(f'results/{info.task}/smart_robobo_0650h/{info.scene}/learning_progress.tsv', sep='\t', mode='w+')
 
         return self.observations, reward, done, {}
 
