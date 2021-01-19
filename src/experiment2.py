@@ -3,10 +3,9 @@ from OurDQN import OurDQN
 from OurMPLPolicy import OurMlpPolicy
 import info
 import pandas as pd
-import numpy as np
 
 env = VRepEnv(info.actions, 5)
-mode = 'evaluating'
+mode = 'learning'
 if mode == 'learning':
     model = OurDQN(OurMlpPolicy, env)
     model.learn(total_timesteps=25000, model_saving_path=info.model_save_file)
