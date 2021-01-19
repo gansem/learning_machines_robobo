@@ -22,7 +22,7 @@ class VRepEnv:
         self.actions = actions
         self.action_space = Discrete(len(actions))
         self.rob.play_simulation()
-        self.rob.set_phone_tilt(np.pi / 6.0, 10)
+        self.rob.set_phone_tilt(np.pi / 4.0, 10)
         self.observations = self.get_camera_observations()
         self.observation_space = Box(low=0.0, high=1.0, shape=(n_observations,))
         self.time_passed = 0
