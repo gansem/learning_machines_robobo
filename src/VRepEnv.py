@@ -191,7 +191,7 @@ class VRepEnv:
 
         return np.array(distances).mean()
 
-     def _reset_food(self):
+    def _reset_food(self):
         #collects positions of the walls (only works on standard map)
         leftwall_handle = vrep.unwrap_vrep(vrep.simxGetObjectHandle(self.rob._clientID, '80cmHighWall200cm', vrep.simx_opmode_blocking))
         pos_lw = vrep.unwrap_vrep(vrep.simxGetObjectPosition(self.rob._clientID, leftwall_handle, -1, vrep.simx_opmode_blocking))
