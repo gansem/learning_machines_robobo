@@ -10,17 +10,19 @@ import cv2
 class VRepEnv:
     """Class to plug the VRep simulator environment into the Stable - baseline DQN algorithm."""
 
-    def __init__(self, actions, n_observations):
+    def __init__(self, actions, n_observations, task=1):
         """
         :param actions: list of actions. Each action is a four-tuple (left_speed, right_speed, duration, direction(-1=backwards, 1=forward))
         :param n_observations: number of sensors
+        :param task: which task is currently performed [1, 2, 3]
         """
         self.rob = robobo.SimulationRobobo(info.client).connect(address='127.0.0.1', port=19997)
         # using action and observation spaces of Gym to minimize code alterations.
+        self.task = task
         self.actions = actions
         self.action_space = Discrete(len(actions))
         self.rob.play_simulation()
-        self.observations = self.get_sensor_observations()
+        self.observations = self.get_observations()
         self.observation_space = Box(low=0.0, high=1.0, shape=(n_observations,))
         self.time_per_episode = 20000  # 20 seconds
         self.time_passed = 0
@@ -31,6 +33,11 @@ class VRepEnv:
         self.accu_v_measure_sensor_distance = 0
         self.episode_counter = 0
 
+        # temp
+        self.img = []
+        self.mask = []
+
+
     def reset(self):
         '''
         Done at every episode end
@@ -40,12 +47,11 @@ class VRepEnv:
 
         return self.observations
 
-    def step(self, action_index, task=1, epsilon=0):
+    def step(self, action_index, epsilon=0):
         """
         Performs the action in the environment and returns the new observations (state), reward, done (?) and info(?)
 
         :param action_index: Index of the action that should be executed.
-        :param task: which task is currently performed [1, 2, 3]
         :param epsilon: Current epsilon (for epsilon greedy; used here just for printing)
         :return: tuple of observed state, observed reward, wheter the episode is done and information (not used here)
         """
@@ -57,17 +63,21 @@ class VRepEnv:
         self.rob.move(action[0], action[1], action[2])
         # save stopping position
         stop_position = self.rob.position()
-        # save stopping ir readings for relevant sensors
-        self.observations = self.get_observations(taks=task)
-        image = self.rob.get_image_front()
+        # get readings for relevant sensors (IR or camera)
+        self.observations = self.get_observations()
+        # cv2.imwrite('test_img.png', imgs[0])
+        # cv2.imwrite('test_mask.png', imgs[1])
+
+        # cv2.imshow("image", image)
+        # cv2.waitKey(0)
 
         # ------ Calculating reward
         distance = math.sqrt((stop_position[0] - start_position[0])**2 + (stop_position[1] - start_position[1])**2)
-        reward = self.get_reward(action, distance, task)
+        reward = self.get_reward(action, distance)
         self.accu_reward += reward
 
         # ------ Getting validation metrics
-        validation_metrics = self.get_validation_metrics(task, action_index, reward, distance, epsilon)
+        validation_metrics = self.get_validation_metrics(action_index, reward, distance, epsilon)
         # write to dataframe
         self.df = self.df.append(validation_metrics, ignore_index=True)
 
@@ -93,10 +103,10 @@ class VRepEnv:
     def get_rob_position(self):
         return self.rob.position()
 
-    def get_observations(self, task):
-        if task == 1:
+    def get_observations(self):
+        if self.task == 1:
             return self.get_sensor_observations()
-        if task == 2:
+        if self.task == 2:
             return self.get_camera_observations()
 
     def get_camera_observations(self):
@@ -107,13 +117,16 @@ class VRepEnv:
         high = np.array([102, 255, 255])
         mask = cv2.inRange(hsv, low, high)
 
-        left = mask[:, 0:25]
+        far_left = mask[:, 0:25]
+        # left = mask[:, 0:51]
         mid_left = mask[:, 25:51]
         mid = mask[:, 51:77]
         mid_right = mask[:, 77:103]
-        right = mask[:, 103:]
+        # right = mask[:, 77:]
+        far_right = mask[:, 103:]
 
-        cam_values = [left, mid_left, mid, mid_right, right]
+        cam_values = [far_left, mid_left, mid, mid_right, far_right]
+        # cam_values = [left, mid, right]
 
         cam_obs = [(np.sum(value) / (value.shape[0] * value.shape[1]))/255 for value in cam_values]
 
@@ -123,6 +136,9 @@ class VRepEnv:
 
         # uncomment to use only camera
         observation = cam_obs
+
+        self.img = image
+        self.mask = mask
 
         return observation
 
@@ -148,9 +164,11 @@ class VRepEnv:
         sum = errors.sum()/4
         return -sum + 4
 
-    def get_reward(self, action, travelled_distance, task):
-        if task==1:
+    def get_reward(self, action, travelled_distance):
+        if self.task==1:
             return self._get_reward_task1(action, travelled_distance)
+        elif self.task==2:
+            return self._get_reward_task2()
 
     def _get_reward_task1(self, action, travelled_distance):
         distance_reward = action[3] * travelled_distance
@@ -162,10 +180,30 @@ class VRepEnv:
 
         return distance_reward + sensor_penalty
 
-    def get_validation_metrics(self, task, action_index, reward, distance, epsilon):
+    def _get_reward_task2(self):
+        _obs = self.observations
+
+        # find mid in observation list
+        mid_index = math.floor(len(_obs)/2)
+        # find the most food in image section
+        max_index = _obs.index(max(_obs))
+
+        # if max is in left or right, apply negative reward according to distance
+        if mid_index != max_index:
+            reward = _obs[max_index] -1
+        # if max is in mid, apply positive reward according to distance
+        else:
+            reward = _obs[max_index]
+
+        return reward
+    
+    def _compute_sensor_penalty_task2(self):
+        return
+
+
+    def get_validation_metrics(self, action_index, reward, distance, epsilon):
         '''
         Creates an entry for a data frame with metrics for a specific task and returns it.
-        :param task: Task for which to collect the metrics. One of [1, 2, 3]
         :param action_index: Index of the current action in the action space.
         :param reward: reward currently observed.
         :param distance: travelled distance in the current step.
@@ -173,8 +211,10 @@ class VRepEnv:
         :return: entry with metrics
         '''
         action = self.actions[action_index]
-        if task == 1:
+        if self.task == 1:
             return self._get_validation_metrics_task1(action, action_index, reward, distance, epsilon)
+        if self.task == 2:
+            return self._get_validation_metrics_task2(action, action_index, reward, distance, epsilon)
 
     def _get_validation_metrics_task1(self, action, action_index, reward, distance, epsilon):
         in_object_range = False
@@ -192,7 +232,8 @@ class VRepEnv:
         entry = {
             "action_index": int(action_index),
             "episode_index": int(self.episode_counter),
-            "observations:": self.observations,
+            "observations": self.observations,
+            "time_elapsed": self.time_passed,
             "reward": reward,
             "object_in_range": in_object_range,
             "v_measure_calc_distance": self.v_measure_calc_distance,
@@ -203,8 +244,45 @@ class VRepEnv:
             "epsilon": epsilon,
         }
         print(f"\n-- action_index: {action_index} --\nobservations: {self.observations} \nreward: {reward} \n"
-              f"object in range: {in_object_range} \nv_measure_calc_distance: {self.v_measure_calc_distance}, \n"
+              f"object in range: {in_object_range} \n"
+              f"time elapsed: {self.time_passed} \n"
+              f"v_measure_calc_distance: {self.v_measure_calc_distance} \n"
               f"v_measure_sensor_distance: {self.v_measure_sensor_distance} \n"
+              f"v_distance_reward: {distance} \n"
               f"accu_v_measure_sensor_distance: {self.accu_v_measure_sensor_distance} \n"
-              f"v_distance_reward: {distance} \nself.accu_reward: {self.accu_reward} \nepsilon: {epsilon}")
+              f"self.accu_reward: {self.accu_reward} \n"
+              f"epsilon: {epsilon}")
         return entry
+
+    def _get_validation_metrics_task2(self, action, action_index, reward, distance, epsilon):
+        # in_object_range = False
+        # if any IRS detects an object, add to validity measure
+        # if any(self.rob.read_irs()):
+        #     in_object_range = True
+
+        # write to dataframe
+        entry = {
+            "action_index": int(action_index),
+            "episode_index": int(self.episode_counter),
+            "observations": self.observations,
+            "time_elapsed": self.time_passed,
+            "reward": reward,
+            # "object_in_range": in_object_range,
+            # "v_measure_calc_distance": self.v_measure_calc_distance,
+            # "v_measure_sensor_distance": self.v_measure_sensor_distance,
+            "v_distance_reward": distance,
+            # "accu_v_measure_sensor_distance": self.accu_v_measure_sensor_distance,
+            # "accu_reward": self.accu_reward,
+            "epsilon": epsilon,
+        }
+        print(f"\n-- action_index: {action_index} --\nobservations: {self.observations} \nreward: {reward} \n"
+            #   f"object in range: {in_object_range} \n"
+              f"time elapsed: {self.time_passed} \n"
+              f"v_measure_calc_distance: {self.v_measure_calc_distance} \n"
+            #   f"v_measure_sensor_distance: {self.v_measure_sensor_distance} \n"
+              f"v_distance_reward: {distance} \n"
+            #   f"accu_v_measure_sensor_distance: {self.accu_v_measure_sensor_distance} \n"
+            #   f"self.accu_reward: {self.accu_reward} \n"
+              f"epsilon: {epsilon}")
+        return entry
+
