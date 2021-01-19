@@ -46,7 +46,7 @@ class VRepEnv:
 
         return self.observations
 
-    def step(self, action_index, epsilon=0):
+    def step(self, action_index, epsilon=0, mode='learning'):
         """
         Performs the action in the environment and returns the new observations (state), reward, done (?) and info(?)
 
@@ -55,6 +55,7 @@ class VRepEnv:
         :return: tuple of observed state, observed reward, wheter the episode is done and information (not used here)
         """
         # ----- Performing action
+        old_amount_food = self.food_eaten
         action = self.actions[action_index]
         # perform action in environment
         self.rob.move(action[0], action[1], action[2])
@@ -65,6 +66,8 @@ class VRepEnv:
 
         # ------ Calculating reward
         reward = self.get_reward()
+        if old_amount_food < self.food_eaten and reward >= -0.5:  # food must be in front of it and robobo must eat it
+            reward += 2
         self.accu_reward += reward
 
         # ------ printing for debugging
@@ -91,7 +94,7 @@ class VRepEnv:
             self.df = self.df.append(entry, ignore_index=True)
 
             # write dataframe to disk
-            self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/learning_progress.tsv', sep='\t',
+            self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/{mode}_progress.tsv', sep='\t',
                            mode='w+')
 
         return self.observations, reward, done, {}
@@ -196,3 +199,4 @@ class VRepEnv:
                 new_pos[0] = ((rnd.random() * 2) - 4.1)
                 new_pos[1] = ((rnd.random() * 2) - 0.2)
             vrep.simxSetObjectPosition(self.rob._clientID, food_handle, -1, new_pos, vrep.simx_opmode_blocking)
+
