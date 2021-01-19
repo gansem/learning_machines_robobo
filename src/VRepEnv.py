@@ -191,19 +191,39 @@ class VRepEnv:
 
         return np.array(distances).mean()
 
-    def _reset_food(self):
+     def _reset_food(self):
+        #collects positions of the walls (only works on standard map)
+        leftwall_handle = vrep.unwrap_vrep(vrep.simxGetObjectHandle(self.rob._clientID, '80cmHighWall200cm', vrep.simx_opmode_blocking))
+        pos_lw = vrep.unwrap_vrep(vrep.simxGetObjectPosition(self.rob._clientID, leftwall_handle, -1, vrep.simx_opmode_blocking))
+        
+        rightwall_handle = vrep.unwrap_vrep(vrep.simxGetObjectHandle(self.rob._clientID, '80cmHighWall200cm1', vrep.simx_opmode_blocking))
+        pos_rw = vrep.unwrap_vrep(vrep.simxGetObjectPosition(self.rob._clientID, rightwall_handle, -1, vrep.simx_opmode_blocking))
+        
+        bottomwall_handle = vrep.unwrap_vrep(vrep.simxGetObjectHandle(self.rob._clientID, '80cmHighWall200cm2', vrep.simx_opmode_blocking))
+        pos_bw = vrep.unwrap_vrep(vrep.simxGetObjectPosition(self.rob._clientID, bottomwall_handle, -1, vrep.simx_opmode_blocking))
+        
+        topwall_handle = vrep.unwrap_vrep(vrep.simxGetObjectHandle(self.rob._clientID, '80cmHighWall200cm0', vrep.simx_opmode_blocking))
+        pos_tw = vrep.unwrap_vrep(vrep.simxGetObjectPosition(self.rob._clientID, topwall_handle, -1, vrep.simx_opmode_blocking))
+        
+        food_pos = []
         for food in self.food_names:
             food_handle = vrep.unwrap_vrep(vrep.simxGetObjectHandle(self.rob._clientID, food, vrep.simx_opmode_blocking))
             new_pos = vrep.unwrap_vrep(vrep.simxGetObjectPosition(self.rob._clientID, food_handle, -1, vrep.simx_opmode_blocking))
             if new_pos[2] - 1 > 0:
                 new_pos[2] -= 1  # reset height of food
             # from provided script on canvas
-            new_pos[0] = ((rnd.random() * 2) - 4.1)
-            new_pos[1] = ((rnd.random() * 2) - 0.2)
+            new_pos[0] = (rnd.uniform(pos_lw[0], pos_rw[0]))
+            new_pos[1] = (rnd.uniform(pos_bw[1], pos_tw[1]))
             # check if it is placed on the robot
             while self.rob.position()[0] + 0.25 > new_pos[0] > self.rob.position()[0] - 0.25 \
                     and self.rob.position()[1] + 0.25 > new_pos[1] > self.rob.position()[1] - 0.25:
-                new_pos[0] = ((rnd.random() * 2) - 4.1)
-                new_pos[1] = ((rnd.random() * 2) - 0.2)
+                new_pos[0] = (rnd.uniform(pos_lw[0], pos_rw[0]))
+                new_pos[1] = (rnd.uniform(pos_bw[1], pos_tw[1]))
+                #checks if the food doesn't overlap already placed food
+                for x in food_pos:
+                    if new_pos == x:
+                        new_pos[0] = (rnd.uniform(pos_lw[0], pos_rw[0]))
+                        new_pos[1] = (rnd.uniform(pos_bw[1], pos_tw[1]))      
+                    else:
+                        food_pos.append(new_pos)
             vrep.simxSetObjectPosition(self.rob._clientID, food_handle, -1, new_pos, vrep.simx_opmode_blocking)
-
