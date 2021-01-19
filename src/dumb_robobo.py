@@ -1,0 +1,249 @@
+#!/usr/bin/env python3
+from __future__ import print_function
+
+import time
+import numpy as np
+import pandas as pd
+import math
+import info
+
+import robobo
+import cv2
+import sys
+import signal
+import prey
+
+
+def terminate_program(signal_number, frame):
+    print("Ctrl-C received, terminating program")
+    sys.exit(1)
+
+def mean(arr):
+    'return mean of array in type float64'
+    return np.mean(arr, dtype=np.float64)
+
+def decide_irs_move(irs, actions):
+    'decide on actions to take'
+    # [backR (0), backC (1), backL (2), frontRR (3), frontR (4), frontC (5), frontL (6), frontLL (7)]]
+    # if there is on obstacle detected, go straight
+    if np.mean(irs[4:]) > 0.8:
+        l, r, t = actions[0]
+    # if there is something closer in front than on the back, go forward
+    elif (mean(irs[4:])*3)/4 > 0.05:
+        # if there is something closest straight in front, spin right or left
+        if irs[5] < mean([irs[3],irs[4]]) or irs[5] < mean([irs[6],irs[7]]):
+            # if right is closest than left, spin left:
+            if mean([irs[5],irs[6],irs[7]]) > mean([irs[3],irs[4],irs[5]]):
+                l, r, t = actions[3]
+            # spin right
+            else:
+                l, r, t = actions[4]
+        else:
+            # if right is closest than left, turn left:
+            if mean([irs[5],irs[6],irs[7]]) > mean([irs[3],irs[4],irs[5]]):
+                l, r, t = actions[1]
+            # turn right
+            else:
+                l, r, t = actions[2]
+    # go back
+    else:
+        # if right is closer than left, turn back-left
+        if mean([irs[2],irs[1]]) > mean([irs[0],irs[1]]):
+            l, r, t = actions[5]
+        # turn back-right
+        else:
+            l, r, t = actions[6]
+    return l, r, t
+
+def decide_irs_move_reduced_actions(irs, actions):
+    'decide on actions to take while using reduced actions (forward [0], rotate-left [1], rotate-right [2])'
+
+    object_in_range = False
+    # [backR (0), backC (1), backL (2), frontRR (3), frontR (4), frontC (5), frontL (6), frontLL (7)]]
+    # if there is on obstacle detected, go straight
+    if np.mean(irs[4:]) > 0.78:
+        i = 0
+    # if there is something closer in front than on the back, go forward
+    else:
+        object_in_range = True
+        # if right is closest than left, turn left:
+        if mean([irs[5],irs[6],irs[7]]) > mean([irs[3],irs[4],irs[5]]):
+            i = 2
+        # turn right
+        else:
+            i = 1
+    return i, object_in_range
+
+def decide_cam_move_reduced_actions(cam_obs, actions):
+    'decide on actions to take based on camera observations using reduced actions (forward [0], rotate-left [1], rotate-right [2])'
+
+    # find mid in observation list
+    mid_index = math.floor(len(_obs) / 2)
+    # find the most food in image section
+    max_index = _obs.index(max(_obs))
+
+    if max_index == mid_index:
+        i = 0
+    elif max_index < mid_index:
+        i = 1
+    else:
+        i = 2        
+
+    return i
+
+def get_image_segments(rob):
+    '''
+    Get image from front robot camera,
+    apply mask to identify food / prey,
+    get percentages of visibility per segment
+    '''
+    image = rob.get_image_front()
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    low = np.array([25, 52, 72])
+    high = np.array([102, 255, 255])
+    mask = cv2.inRange(hsv, low, high)
+
+    far_left = mask[:, 0:25]
+    # left = mask[:, 0:51]
+    mid_left = mask[:, 25:51]
+    mid = mask[:, 51:77]
+    mid_right = mask[:, 77:103]
+    # right = mask[:, 77:]
+    far_right = mask[:, 103:]
+
+    cam_values = [far_left, mid_left, mid, mid_right, far_right]
+    # cam_values = [left, mid, right]
+
+    cam_obs = [(np.sum(value) / (value.shape[0] * value.shape[1]))/255 for value in cam_values]
+
+    if include_sensor:
+        front_sensor = [self._get_sensor_observations()[2]]
+        observation = [front_sensor.append(cam_ob) for cam_ob in cam_obs]
+    else:
+        observation = cam_obs
+
+    return observation
+
+
+def main(task):
+    # allow for termination of process
+    signal.signal(signal.SIGINT, terminate_program)
+
+    # connect to environment and start simulation
+    rob = robobo.SimulationRobobo().connect(address='127.0.0.1', port=19997)
+    rob.play_simulation()
+
+    # import actions
+    actions = info.actions
+    # if actions are reduced (similar to smart robobo), remove reward element
+    if len(actions[0]) > 3:
+        for i in range(len(actions)):
+            actions[i] = actions[i][0:3]
+
+    # choose between tasks
+    if task==1:
+        object_avoidance(rob, actions)
+    elif: task==2:
+        foraging(rob, actions)
+    # elif: task==3:
+    #     chasing_prey(rob, actions)
+
+
+def calc_distance_travelled(start_pos, stop_pos):
+    return math.sqrt((stop_pos[0] - start_pos[0])**2 + (stop_pos[1] - start_pos[1])**2)
+
+
+def object_avoidance(rob, actions):
+    """ obstacle avoidance hard-coded algorithm """
+    # init vars
+    time_passed = 0
+    df = pd.DataFrame()
+
+    # loop forever until terminated manually
+    while True:
+
+        irs = parse_irs(rob)
+
+        action_index, object_in_range = decide_irs_move_reduced_actions(irs, actions)
+        action = actions[action_index]
+        l, r, t = action
+
+        # print actions (l_wheel speed | r_wheel speed | time moving (ms))
+        print(f'action: {action_index}:\t{l}\t{r}\t{t}')
+        # save starting positionn (before move)
+        start_position = rob.position()
+        # move robot
+        rob.move(l, r, t)
+        # save finishing position (after move)
+        stop_position = rob.position()
+
+        distance = calc_distance_travelled(start_pos, stop_pos)
+
+        df = df.append({
+            "action_index": action_index,
+            "time_elapsed": time_passed,
+            # "episode_index": int(self.episode_counter),
+            # "observations:": self.observations,
+            # "reward": overall_reward,
+            "object_in_range": object_in_range,
+            # TODO: v_measure_calc_distance in  VRepEnv has a mistake! action[3] = 1.. should be action[2]
+            "v_measure_calc_distance": (1 * np.mean([action[0], action[1]]))/10,
+            "v_measure_sensor_distance": np.sum([(0.2-x) for x in rob.read_irs()]),
+            "v_distance_reward": distance,
+            # "accu_v_measure_sensor_distance": self.accu_v_measure_sensor_distance,
+            # "accu_reward": self.accu_reward,
+            # "epsilon": epsilon,
+            }, ignore_index=True)
+
+        time_passed += t
+        # if 5 minutes passed, print save dataframe and stop
+        if time_passed > 240000:
+            df.to_csv(f'results/{info.task}/{info.user}/{info.scene}/dumb_robobo_progress.tsv', sep='\t')
+            break
+
+    def foraging(rob, actions):
+        """look for food and eat it"""
+        irs = parse_irs(rob)
+        cam_obs = get_image_segments(rob, search_food=True)
+
+        action_index = decide_cam_move_reduced_actions(cam_obs, actions)
+        action = actions[action_index]
+        l, r, t = action
+        
+        # print actions (l_wheel speed | r_wheel speed | time moving (ms))
+        print(f'action: {action_index}:\t{l}\t{r}\t{t}')
+        # save starting positionn (before move)
+        start_position = rob.position()
+        # move robot
+        rob.move(l, r, t)
+        # save finishing position (after move)
+        stop_position = rob.position()
+
+        distance = calc_distance_travelled(start_pos, stop_pos)
+
+        df = df.append({
+            "action_index": action_index,
+            "time_elapsed": time_passed,
+            # "episode_index": int(self.episode_counter),
+            # "observations:": self.observations,
+            # "reward": overall_reward,
+            # "object_in_range": object_in_range,
+            # TODO: v_measure_calc_distance in  VRepEnv has a mistake! action[3] = 1.. should be action[2]
+            # "v_measure_calc_distance": (1 * np.mean([action[0], action[1]]))/10,
+            # "v_measure_sensor_distance": np.sum([(0.2-x) for x in rob.read_irs()]),
+            "v_distance_reward": distance,
+            # "accu_v_measure_sensor_distance": self.accu_v_measure_sensor_distance,
+            # "accu_reward": self.accu_reward,
+            # "epsilon": epsilon,
+            }, ignore_index=True)
+
+        time_passed += t
+        # if 5 minutes passed, print save dataframe and stop
+        if time_passed > 240000:
+            df.to_csv(f'results/{info.task}/{info.user}/{info.scene}/dumb_robobo_progress.tsv', sep='\t')
+            break
+
+# set task: (1) object avoidance, (2) foraging, (3) chasing prey
+if __name__ == "__main__":
+    main(2)
