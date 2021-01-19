@@ -22,7 +22,7 @@ class VRepEnv:
         self.actions = actions
         self.action_space = Discrete(len(actions))
         self.rob.play_simulation()
-        self.rob.set_phone_tilt(np.pi / 4.0, 10)
+        self.rob.set_phone_tilt(np.pi / 6.0, 10)
         self.observations = self.get_camera_observations()
         self.observation_space = Box(low=0.0, high=1.0, shape=(n_observations,))
         self.time_passed = 0
@@ -148,16 +148,23 @@ class VRepEnv:
         _obs = self.observations
 
         # find mid in observation list
-        mid_index = math.floor(len(_obs) / 2)
+        mid_index = math.floor(len(_obs)/2)
         # find the most food in image section
         max_index = _obs.index(max(_obs))
 
         # if max is in left or right, apply negative reward according to distance
-        if mid_index != max_index:
-            reward = _obs[max_index] - 1
+        if mid_index == max_index:
+            reward = _obs[max_index]
         # if max is in mid, apply positive reward according to distance
         else:
-            reward = _obs[max_index]
+            # if 5 observations, reduce -ve reward to mid_left and mid_right
+            if len(_obs) > 3:
+                if mid_index-1 == max_index or mid_index+1 == max_index:
+                    reward = _obs[max_index]-0.7
+                else:
+                    reward = _obs[max_index]-1
+            else:    
+                reward = _obs[max_index]-1
 
         return reward
 
