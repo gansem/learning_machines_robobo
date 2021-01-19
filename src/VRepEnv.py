@@ -22,6 +22,7 @@ class VRepEnv:
         self.actions = actions
         self.action_space = Discrete(len(actions))
         self.rob.play_simulation()
+        self.rob.set_phone_tilt(np.pi / 4.0, 10)
         self.observations = self.get_camera_observations()
         self.observation_space = Box(low=0.0, high=1.0, shape=(n_observations,))
         self.time_passed = 0
@@ -184,7 +185,7 @@ class VRepEnv:
         for food in self.food_names:
             food_handle = vrep.unwrap_vrep(vrep.simxGetObjectHandle(self.rob._clientID, food, vrep.simx_opmode_blocking))
             new_pos = vrep.unwrap_vrep(vrep.simxGetObjectPosition(self.rob._clientID, food_handle, -1, vrep.simx_opmode_blocking))
-            if new_pos[2] -1 > 0:
+            if new_pos[2] - 1 > 0:
                 new_pos[2] -= 1  # reset height of food
             # from provided script on canvas
             new_pos[0] = ((rnd.random() * 2) - 4.1)
