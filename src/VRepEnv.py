@@ -8,6 +8,7 @@ import cv2
 import vrep
 import random as rnd
 
+
 class VRepEnv:
     """Class to plug the VRep simulator environment into the Stable - baseline DQN algorithm."""
 
@@ -30,6 +31,10 @@ class VRepEnv:
         self.food_names = ['Food', 'Food0', 'Food1', 'Food2', 'Food3', 'Food4', 'Food5']  # TOdO: make this generic for arbitraty foods
         self.food_eaten = 0
 
+        # temp
+        self.img = []
+        self.mask = []
+
     def reset(self):
         '''
         Done at every episode end
@@ -45,7 +50,6 @@ class VRepEnv:
         Performs the action in the environment and returns the new observations (state), reward, done (?) and info(?)
 
         :param action_index: Index of the action that should be executed.
-        :param task: which task is currently performed [1, 2, 3]
         :param epsilon: Current epsilon (for epsilon greedy; used here just for printing)
         :return: tuple of observed state, observed reward, wheter the episode is done and information (not used here)
         """
@@ -99,13 +103,16 @@ class VRepEnv:
         high = np.array([102, 255, 255])
         mask = cv2.inRange(hsv, low, high)
 
-        left = mask[:, 0:25]
+        far_left = mask[:, 0:25]
+        # left = mask[:, 0:51]
         mid_left = mask[:, 25:51]
         mid = mask[:, 51:77]
         mid_right = mask[:, 77:103]
-        right = mask[:, 103:]
+        # right = mask[:, 77:]
+        far_right = mask[:, 103:]
 
-        cam_values = [left, mid_left, mid, mid_right, right]
+        cam_values = [far_left, mid_left, mid, mid_right, far_right]
+        # cam_values = [left, mid, right]
 
         cam_obs = [(np.sum(value) / (value.shape[0] * value.shape[1]))/255 for value in cam_values]
 
@@ -114,6 +121,9 @@ class VRepEnv:
             observation = [front_sensor.append(cam_ob) for cam_ob in cam_obs]
         else:
             observation = cam_obs
+
+        self.img = image
+        self.mask = mask
 
         return observation
 
@@ -131,10 +141,21 @@ class VRepEnv:
         return observation
 
     def get_reward(self):
-        #todo: calculate reward for given observation here
-        # dummy
-        return 1
-        raise NotImplementedError
+        _obs = self.observations
+
+        # find mid in observation list
+        mid_index = math.floor(len(_obs) / 2)
+        # find the most food in image section
+        max_index = _obs.index(max(_obs))
+
+        # if max is in left or right, apply negative reward according to distance
+        if mid_index != max_index:
+            reward = _obs[max_index] - 1
+        # if max is in mid, apply positive reward according to distance
+        else:
+            reward = _obs[max_index]
+
+        return reward
 
     def get_avg_food_distance(self):
         '''
