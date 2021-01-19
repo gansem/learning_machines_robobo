@@ -27,8 +27,8 @@ if mode == 'evaluating':
             while not done:  # do an episode
                 action, _states = model.predict(obs)
                 obs, rewards, done, _info = env.step(action, mode=mode)
-        result = pd.read_csv(f'results/{info.task}/{info.user}/{info.take}/{mode}_progress.tsv', sep='\t')
+        result = pd.read_csv(f'./results/{info.task}/{info.user}/{info.take}/{mode}_progress.tsv', sep='\t')
         ind_col = [model_ind for i in range(n_samples)]
         result['Model_ind'] = ind_col
         results = results.append(result, ignore_index=True)
-    results.to_csv(f'results/{info.task}/evaluation/eval_{i_eval}.tsv', sep='\t', mode='w+')
+    results.to_csv(f'./results/{info.task}/evaluation/eval_{i_eval}.tsv', sep='\t', mode='w+')
