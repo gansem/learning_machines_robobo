@@ -17,7 +17,7 @@ class VRepEnv:
         :param actions: list of actions. Each action is a four-tuple (left_speed, right_speed, duration, direction(-1=backwards, 1=forward))
         :param n_observations: number of sensors
         """
-        self.rob = robobo.SimulationRobobo(info.client).connect(address='127.0.0.1', port=19997)
+        self.rob = robobo.SimulationRobobo(info.client).connect(address='192.168.178.23', port=19997)
         # using action and observation spaces of Gym to minimize code alterations.
         self.actions = actions
         self.action_space = Discrete(len(actions))
@@ -212,18 +212,18 @@ class VRepEnv:
             if new_pos[2] - 1 > 0:
                 new_pos[2] -= 1  # reset height of food
             # from provided script on canvas
-            new_pos[0] = (rnd.uniform(pos_lw[0], pos_rw[0]))
-            new_pos[1] = (rnd.uniform(pos_bw[1], pos_tw[1]))
+            new_pos[0] = (rnd.uniform((pos_lw[0] + 0.25), (pos_rw[0] - 0.25)))
+            new_pos[1] = (rnd.uniform((pos_bw[1] + 0.25), (pos_tw[1] - 0.25)))
             # check if it is placed on the robot
             while self.rob.position()[0] + 0.25 > new_pos[0] > self.rob.position()[0] - 0.25 \
                     and self.rob.position()[1] + 0.25 > new_pos[1] > self.rob.position()[1] - 0.25:
-                new_pos[0] = (rnd.uniform(pos_lw[0], pos_rw[0]))
-                new_pos[1] = (rnd.uniform(pos_bw[1], pos_tw[1]))
+                new_pos[0] = (rnd.uniform((pos_lw[0] + 0.25), (pos_rw[0] - 0.25)))
+                new_pos[1] = (rnd.uniform((pos_bw[1] + 0.25), (pos_tw[1] - 0.25)))
                 #checks if the food doesn't overlap already placed food
                 for x in food_pos:
                     if new_pos == x:
-                        new_pos[0] = (rnd.uniform(pos_lw[0], pos_rw[0]))
-                        new_pos[1] = (rnd.uniform(pos_bw[1], pos_tw[1]))      
+                        new_pos[0] = (rnd.uniform((pos_lw[0] + 0.25), (pos_rw[0] - 0.25)))
+                        new_pos[1] = (rnd.uniform((pos_bw[1] + 0.25), (pos_tw[1] - 0.25)))      
                     else:
                         food_pos.append(new_pos)
             vrep.simxSetObjectPosition(self.rob._clientID, food_handle, -1, new_pos, vrep.simx_opmode_blocking)
