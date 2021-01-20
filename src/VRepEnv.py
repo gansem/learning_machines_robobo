@@ -116,16 +116,16 @@ class VRepEnv:
         high = np.array([102, 255, 255])
         mask = cv2.inRange(hsv, low, high)
 
-        #far_left = mask[:, 0:25]
-        left = mask[:, 0:51]
-        #mid_left = mask[:, 25:51]
+        far_left = mask[:, 0:25]
+        #left = mask[:, 0:51]
+        mid_left = mask[:, 25:51]
         mid = mask[:, 51:77]
-        #mid_right = mask[:, 77:103]
-        right = mask[:, 77:]
-        #far_right = mask[:, 103:]
+        mid_right = mask[:, 77:103]
+        #right = mask[:, 77:]
+        far_right = mask[:, 103:]
 
-        #cam_values = [far_left, mid_left, mid, mid_right, far_right]
-        cam_values = [left, mid, right]
+        cam_values = [far_left, mid_left, mid, mid_right, far_right]
+        #cam_values = [left, mid, right]
 
         cam_obs = [(np.sum(value) / (value.shape[0] * value.shape[1]))/255 for value in cam_values]
 
