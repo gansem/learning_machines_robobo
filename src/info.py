@@ -24,7 +24,7 @@ actions = [(30, 30, 1000, 1),    #straight forward
 
 task = 'foraging'
 user = 'andi'
-take = 'take_05'
+take = 'take_02'
 scene = 'food_arena'
 model_save_file = f'./results/{task}/{user}/{take}/{scene}'
 model_load_file = f'./results/{task}/{user}/{take}/foraging_model'

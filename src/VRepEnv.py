@@ -7,6 +7,7 @@ import info
 import cv2
 import vrep
 import random as rnd
+import info
 
 
 class VRepEnv:
@@ -17,7 +18,7 @@ class VRepEnv:
         :param actions: list of actions. Each action is a four-tuple (left_speed, right_speed, duration, direction(-1=backwards, 1=forward))
         :param n_observations: number of sensors
         """
-        self.rob = robobo.SimulationRobobo(info.client).connect(address='192.168.178.23', port=19997)
+        self.rob = robobo.SimulationRobobo(info.client).connect(address=info.ip, port=19997)
         # using action and observation spaces of Gym to minimize code alterations.
         self.actions = actions
         self.action_space = Discrete(len(actions))
@@ -55,6 +56,7 @@ class VRepEnv:
         :return: tuple of observed state, observed reward, wheter the episode is done and information (not used here)
         """
         # ----- Performing action
+        old_reward = self.get_reward()
         old_amount_food = self.food_eaten
         action = self.actions[action_index]
         # perform action in environment
@@ -66,8 +68,8 @@ class VRepEnv:
 
         # ------ Calculating reward
         reward = self.get_reward()
-        if old_amount_food < self.food_eaten and reward >= -0.5:  # food must be in front of it and robobo must eat it
-            reward += 2
+        if old_amount_food < self.food_eaten and old_reward >= -0.25:  # food must be in front of it and robobo must eat it
+            reward += 20
         self.accu_reward += reward
 
         # ------ printing for debugging
@@ -107,16 +109,16 @@ class VRepEnv:
         high = np.array([102, 255, 255])
         mask = cv2.inRange(hsv, low, high)
 
-        far_left = mask[:, 0:25]
-        # left = mask[:, 0:51]
-        mid_left = mask[:, 25:51]
+        #far_left = mask[:, 0:25]
+        left = mask[:, 0:51]
+        #mid_left = mask[:, 25:51]
         mid = mask[:, 51:77]
-        mid_right = mask[:, 77:103]
-        # right = mask[:, 77:]
-        far_right = mask[:, 103:]
+        #mid_right = mask[:, 77:103]
+        right = mask[:, 77:]
+        #far_right = mask[:, 103:]
 
-        cam_values = [far_left, mid_left, mid, mid_right, far_right]
-        # cam_values = [left, mid, right]
+        #cam_values = [far_left, mid_left, mid, mid_right, far_right]
+        cam_values = [left, mid, right]
 
         cam_obs = [(np.sum(value) / (value.shape[0] * value.shape[1]))/255 for value in cam_values]
 

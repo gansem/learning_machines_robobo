@@ -4,7 +4,7 @@ from OurMPLPolicy import OurMlpPolicy
 import info
 import pandas as pd
 
-env = VRepEnv(info.actions, 5)
+env = VRepEnv(info.actions, 3)
 mode = 'learning'
 if mode == 'learning':
     model = OurDQN(OurMlpPolicy, env)
