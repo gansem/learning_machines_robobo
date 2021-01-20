@@ -56,7 +56,14 @@ class VRepEnv:
         :return: tuple of observed state, observed reward, wheter the episode is done and information (not used here)
         """
         # ----- Performing action
-        old_reward = self.get_reward()
+        #old_reward = self.get_reward()
+        old_irs = self._get_sensor_observations()
+        old_irs = [old_irs[i] for i in [1, 2, 3]]
+        obj_in_front = False
+        for irs in old_irs:
+            if irs < 0.15:
+                obj_in_front = True
+                break
         old_amount_food = self.food_eaten
         action = self.actions[action_index]
         # perform action in environment
@@ -68,7 +75,7 @@ class VRepEnv:
 
         # ------ Calculating reward
         reward = self.get_reward()
-        if old_amount_food < self.food_eaten and old_reward >= -0.25:  # food must be in front of it and robobo must eat it
+        if old_amount_food < self.food_eaten and obj_in_front:  # food must be in front of it and robobo must eat it
             reward += 20
         self.accu_reward += reward
 
