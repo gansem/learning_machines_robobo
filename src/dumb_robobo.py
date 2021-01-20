@@ -221,7 +221,8 @@ def _reset_food(rob, food_names):
 
 def foraging(rob, actions):
     """look for food and eat it"""
-
+    eval_df = pd.DataFrame()
+    n_samples = 50
     # init vars
     episode_counter = 0
     time_passed = 0
@@ -230,7 +231,8 @@ def foraging(rob, actions):
     food_names = ['Food', 'Food0', 'Food1', 'Food2', 'Food3', 'Food4', 'Food5']  # TODO: make this generic for arbitraty foods
 
     # loop forever until terminated manually
-    while True:
+    i = 0
+    while i < n_samples:
         irs = parse_irs(rob.read_irs())
         cam_obs = get_image_segments(rob, search_food=True)
 
@@ -273,6 +275,13 @@ def foraging(rob, actions):
         # stopping and resetting
         done = False
         if food_eaten == len(food_names):
+            i += 1
+            eval_df = eval_df.append({
+            "action_index": action_index,
+            "time_elapsed": time_passed,
+            "episode_index": int(episode_counter)}, ignore_index=True)
+
+            eval_df.to_csv(f'./results/foraging/evaluation/eval_dumb.tsv', sep = '\t')
             done = True
             food_eaten = 0
             episode_counter += 1
@@ -280,8 +289,8 @@ def foraging(rob, actions):
 
         # if 5 minutes passed, print save dataframe and stop
         if time_passed > 240000 or done:
-            df.to_csv(f'results/{info.task}/{info.user}/{info.scene}/dumb_robobo_progress.tsv', sep='\t')
-
+            pass
+            #df.to_csv(f'./results/foraging/evaluation/eval_dumb.tsv', sep='\t')
             # break
 
 def object_avoidance(rob, actions):
