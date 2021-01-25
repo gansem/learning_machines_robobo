@@ -36,6 +36,7 @@ class VRepEnv:
         self.episode_counter = 0
         self.food_names = ['Food', 'Food0', 'Food1', 'Food2', 'Food3', 'Food4', 'Food5']  # TOdO: make this generic for arbitraty foods
         self.food_eaten = 0
+        self.winner = []
 
         # temp
         self.img = []
@@ -49,6 +50,7 @@ class VRepEnv:
         # validation measures
         self.accu_reward = 0
         self.time_passed = 0
+        self.winner = []
 
         if role == 'pred':
             return self.pred_observations
@@ -98,8 +100,12 @@ class VRepEnv:
 
         # ------ Stopping and resetting
         done = False
-        if self.food_eaten == len(self.food_names):
-            done = True
+        while self.time_passed != 300:
+            if reward >= 20:        # 20 = reward for eating prey, change if reward changes
+                self.winner.append('pred')  #predator
+                done = True
+        else:
+            self.winner.append('prey')  #prey won
 
         # reset metrics after each episode
         if done:
@@ -110,7 +116,8 @@ class VRepEnv:
             # save the normalized time in dataframe
             entry = {'avg_food_distance': self.get_avg_food_distance(),
                      'time_passed': self.time_passed,
-                     'accu_reward': self.accu_reward}
+                     'accu_reward': self.accu_reward,
+                     'winner': self.winner}
             self.df = self.df.append(entry, ignore_index=True)
 
             # write dataframe to disk
@@ -299,25 +306,15 @@ class VRepEnv:
         topwall_handle = vrep.unwrap_vrep(vrep.simxGetObjectHandle(self.rob._clientID, '80cmHighWall200cm0', vrep.simx_opmode_blocking))
         pos_tw = vrep.unwrap_vrep(vrep.simxGetObjectPosition(self.rob._clientID, topwall_handle, -1, vrep.simx_opmode_blocking))
         
-        food_pos = []
-        for food in self.food_names:
-            food_handle = vrep.unwrap_vrep(vrep.simxGetObjectHandle(self.rob._clientID, food, vrep.simx_opmode_blocking))
-            new_pos = vrep.unwrap_vrep(vrep.simxGetObjectPosition(self.rob._clientID, food_handle, -1, vrep.simx_opmode_blocking))
-            if new_pos[2] - 1 > 0:
-                new_pos[2] -= 1  # reset height of food
-            # from provided script on canvas
+
+        food_handle = vrep.unwrap_vrep(vrep.simxGetObjectHandle(self.rob._clientID, 'Robobo#0', vrep.simx_opmode_blocking))
+        new_pos = vrep.unwrap_vrep(vrep.simxGetObjectPosition(self.rob._clientID, food_handle, -1, vrep.simx_opmode_blocking))
+        # from provided script on canvas
+        new_pos[0] = (rnd.uniform((pos_lw[0] + 0.25), (pos_rw[0] - 0.25)))
+        new_pos[1] = (rnd.uniform((pos_bw[1] + 0.25), (pos_tw[1] - 0.25)))
+        # check if it is placed on the robot
+        while self.rob.position()[0] + 0.25 > new_pos[0] > self.rob.position()[0] - 0.25 \
+                and self.rob.position()[1] + 0.25 > new_pos[1] > self.rob.position()[1] - 0.25:
             new_pos[0] = (rnd.uniform((pos_lw[0] + 0.25), (pos_rw[0] - 0.25)))
             new_pos[1] = (rnd.uniform((pos_bw[1] + 0.25), (pos_tw[1] - 0.25)))
-            # check if it is placed on the robot
-            while self.rob.position()[0] + 0.25 > new_pos[0] > self.rob.position()[0] - 0.25 \
-                    and self.rob.position()[1] + 0.25 > new_pos[1] > self.rob.position()[1] - 0.25:
-                new_pos[0] = (rnd.uniform((pos_lw[0] + 0.25), (pos_rw[0] - 0.25)))
-                new_pos[1] = (rnd.uniform((pos_bw[1] + 0.25), (pos_tw[1] - 0.25)))
-                #checks if the food doesn't overlap already placed food
-                for x in food_pos:
-                    if new_pos == x:
-                        new_pos[0] = (rnd.uniform((pos_lw[0] + 0.25), (pos_rw[0] - 0.25)))
-                        new_pos[1] = (rnd.uniform((pos_bw[1] + 0.25), (pos_tw[1] - 0.25)))      
-                    else:
-                        food_pos.append(new_pos)
-            vrep.simxSetObjectPosition(self.rob._clientID, food_handle, -1, new_pos, vrep.simx_opmode_blocking)
+        vrep.simxSetObjectPosition(self.rob._clientID, food_handle, -1, new_pos, vrep.simx_opmode_blocking)
