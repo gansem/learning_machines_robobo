@@ -34,8 +34,8 @@ class VRepEnv:
         self.df = pd.DataFrame()
         self.accu_reward = 0
         self.episode_counter = 0
-        self.food_names = ['Food', 'Food0', 'Food1', 'Food2', 'Food3', 'Food4', 'Food5']  # TOdO: make this generic for arbitraty foods
-        self.food_eaten = 0
+        # self.food_names = ['Food', 'Food0', 'Food1', 'Food2', 'Food3', 'Food4', 'Food5']  # TOdO: make this generic for arbitraty foods
+        # self.food_eaten = 0
         self.winner = []
 
         # temp
@@ -50,7 +50,7 @@ class VRepEnv:
         # validation measures
         self.accu_reward = 0
         self.time_passed = 0
-        self.winner = []
+        self.winner = 'prey'
 
         if role == 'pred':
             return self.pred_observations
@@ -68,27 +68,25 @@ class VRepEnv:
         :return: tuple of observed state, observed reward, wheter the episode is done and information (not used here)
         """
         # ----- Performing action
-        old_reward = self.get_pred_reward()
-        old_irs = self._get_sensor_observations()
-        old_irs = [old_irs[i] for i in [1, 2, 3]]
-        obj_in_front = False
-        for irs in old_irs:
-            if irs < 0.15:
-                obj_in_front = True
-                break
-        old_amount_food = self.food_eaten
+        # old_reward = self.get_pred_reward()
+        # old_irs = self._get_sensor_observations()
+        # old_irs = [old_irs[i] for i in [1, 2, 3]]
+        
+        # for irs in old_irs:
+        #     if irs < 0.15:
+        #         obj_in_front = True
+        #         break
+            
         action = self.actions[action_index]
         # perform action in environment
         self.rob.move(action[0], action[1], action[2])
-        # save stopping ir readings for relevant sensors
-        self.observations = self.get_camera_observations()
+        # get camera observations
+        self.pred_observations = self.get_camera_observations()
+        # append time passed from respective action
         self.time_passed += action[2]
-        #self.food_eaten = self.rob.collected_food() - self.episode_counter * len(self.food_names)
 
         # ------ Calculating reward
         reward = self.get_pred_reward()
-        if old_amount_food < self.food_eaten and obj_in_front:  # food must be in front of it and robobo must eat it
-            reward += 20
         self.accu_reward += reward
 
         # ------ printing for debugging
@@ -96,37 +94,41 @@ class VRepEnv:
         print('action:', action_index)
         print('reward:', reward)
         # print('elapsed time:', self.time_passed)
-        # print('collected food:', self.food_eaten)
 
         # ------ Stopping and resetting
+        # reset every 30s or as soon as prey is caught
         done = False
-        while self.time_passed != 300:
-            if reward >= 20:        # 20 = reward for eating prey, change if reward changes
-                self.winner.append('pred')  #predator
-                done = True
-        else:
-            self.winner.append('prey')  #prey won
+        if self.time_passed >= 30000:
+            done = True
+            print('! TIME PASSED !')
+        # 20 = reward for eating prey, change if reward changes
+        if reward >= 20:
+            self.winner = 'pred'
+            done = True
+            print('! PREY CAUGHT !')
 
         # reset metrics after each episode
         if done:
             print('episode done')
             self.episode_counter += 1
-            self.food_eaten = 0
-            self._reset_food()
             # save the normalized time in dataframe
-            entry = {'avg_food_distance': self.get_avg_food_distance(),
-                     'time_passed': self.time_passed,
-                     'accu_reward': self.accu_reward,
-                     'winner': self.winner}
+            entry = {
+                'episode_index': self.episode_counter, 
+                'time_passed': self.time_passed,
+                'accu_reward': self.accu_reward,
+                'winner': self.winner}
             self.df = self.df.append(entry, ignore_index=True)
 
             # write dataframe to disk
             self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/{mode}_progress.tsv', sep='\t',
                            mode='w+')
 
+            # sleep for 5 seconds emulating reset pos
+            self.rob.sleep(10)
+
         # self.observations = self.observations + old_reward + [old_action / len(self.actions)]
 
-        return self.observations, reward, done, {}
+        return self.pred_observations, reward, done, {}
 
     def prey_step(self, action_index, epsilon=0, mode='learning'):
         """
@@ -205,23 +207,25 @@ class VRepEnv:
 
         cam_obs = [(np.sum(value) / (value.shape[0] * value.shape[1]))/255 for value in cam_values]
 
-        if include_sensor:
-            front_sensor = [self._get_sensor_observations()[2]]
-            observation = [front_sensor.append(cam_ob) for cam_ob in cam_obs]
-        else:
-            observation = cam_obs
+        # if include_sensor:
+        #     front_sensor = [self._get_sensor_observations()[2]]
+        #     observation = [front_sensor.append(cam_ob) for cam_ob in cam_obs]
+        # else:
+        observation = cam_obs
 
         self.img = image
         self.mask = mask
 
         return observation
 
-    def _get_sensor_observations(self):
+    def _get_sensor_observations(self, pred=False):
         '''
         Reads sensor information and returns normalized an thresholded values.
         '''
-        observation = self.prey.read_irs()
-        observation = [observation[i] for i in [1, 3, 5, 7]]  # reading only sensors: backC, frontRR,  frontC, frontLL
+        # reading only sensors: backC, frontRR,  frontC, frontLL
+        observation = [self.rob.read_irs()[i] for i in [1, 3, 5, 7]]
+        if pred:
+            observation = [self.rob.read_irs()[i] for i in [4, 5, 6]]
         observation = [0.15 if observation[i] == False else observation[i] for i in
                        range(len(observation))]  # false -> 0.15
         # we need to introduce a threshold s.t. only distances below 0.15 are counted. Otherwise the distances
@@ -230,23 +234,25 @@ class VRepEnv:
         return observation
 
     def get_pred_reward(self):
-        _obs = self.pred_observations
+        cam_obs = self.pred_observations
+        ir_obs = self._get_sensor_observations(pred=True)
 
-        # find mid in observation list
-        mid_index = math.floor(len(_obs)/2)
-        # find the most food in image section
-        max_index = _obs.index(max(_obs))
+        close = False
+        for v in ir_obs:
+            if v < 0.05:
+                close = True
 
-        # if max is in left or right, apply negative reward according to distance
-        if self._get_sensor_observations()[2] < 0.01:
+        # if an object is object sensed and prey is visible
+        if close and any(cam_obs):
+            print(ir_obs)
             reward = 20
         else:
-            reward = sum(_obs)/5
+            reward = sum(cam_obs)/5
 
         return reward
 
     def get_prey_reward(self):
-        _obs = self.observations
+        _obs = self.prey_observations
 
         # find mid in observation list
         mid_index = math.floor(len(_obs)/2)

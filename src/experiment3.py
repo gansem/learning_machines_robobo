@@ -4,6 +4,14 @@ from OurMPLPolicy import OurMlpPolicy
 import info
 import pandas as pd
 import robobo
+import signal
+import sys
+
+def terminate_program(signal_number, frame):
+    print("Ctrl-C received, terminating program")
+    sys.exit(1)
+
+signal.signal(signal.SIGINT, terminate_program)
 
 # init VRep connections
 rob = robobo.SimulationRobobo(info.client).connect(address=info.ip, port=19997)
@@ -17,8 +25,8 @@ mode = 'learning'
 if mode == 'learning':
     pred_model = OurDQN(OurMlpPolicy, pred_env, role='pred')
     prey_model = OurDQN(OurMlpPolicy, prey_env, role='prey')
-    thread_pred = OurDQNLearningThread(pred_model, 25000, info.model_save_file+'pred_')
-    thread_prey = OurDQNLearningThread(prey_model, 25000, info.model_save_file+'prey_')
+    thread_pred = OurDQNLearningThread(pred_model, 25000, info.model_save_file+'_pred_')
+    thread_prey = OurDQNLearningThread(prey_model, 25000, info.model_save_file+'_prey_')
     # model.learn(total_timesteps=25000, model_saving_path=info.model_save_file)
     thread_pred.start()
     thread_prey.start()
