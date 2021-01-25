@@ -19,10 +19,12 @@ class VRepEnv:
         :param n_observations: number of sensors
         """
         self.rob = robobo.SimulationRobobo(info.client).connect(address=info.ip, port=19997)
+        # self.prey = robobo.SimulationRoboboPrey(info.client).connect(address=info.ip, port=19989)
         # using action and observation spaces of Gym to minimize code alterations.
         self.actions = actions
         self.action_space = Discrete(len(actions))
         self.rob.play_simulation()
+        # self.prey.run()
         self.rob.set_phone_tilt(np.pi / 4.0, 10)
         self.observations = self.get_camera_observations()
         self.observation_space = Box(low=0.0, high=1.0, shape=(n_observations,))
@@ -112,8 +114,13 @@ class VRepEnv:
         image = self.rob.get_image_front()
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
-        low = np.array([25, 52, 72])
-        high = np.array([102, 255, 255])
+        # Uncomment for foraging
+        # low = np.array([25, 52, 72])
+        # high = np.array([102, 255, 255])
+
+        # Uncomment for prey
+        low = np.array([0, 50, 20])
+        high = np.array([5, 255, 255])
         mask = cv2.inRange(hsv, low, high)
 
         far_left = mask[:, 0:25]

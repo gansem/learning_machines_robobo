@@ -26,7 +26,7 @@ def mean(arr):
 def decide_irs_move(irs, actions):
     'decide on actions to take'
     # [backR (0), backC (1), backL (2), frontRR (3), frontR (4), frontC (5), frontL (6), frontLL (7)]]
-    # if there is on obstacle detected, go straight
+    # if there is no obstacle detected, go straight
     if np.mean(irs[4:]) > 0.8:
         l, r, t = actions[0]
     # if there is something closer in front than on the back, go forward
