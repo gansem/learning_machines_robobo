@@ -50,7 +50,7 @@ class VRepEnv:
 
         return self.observations
 
-    def pred_step(self, action_index, epsilon=0, mode='learning'):
+    def pred_step(self, action_index, old_action, epsilon=0, mode='learning'):
         """
         Performs the action in the environment and returns the new observations (state), reward, done (?) and info(?)
 
@@ -59,7 +59,7 @@ class VRepEnv:
         :return: tuple of observed state, observed reward, wheter the episode is done and information (not used here)
         """
         # ----- Performing action
-        #old_reward = self.get_pred_reward()
+        old_reward = self.get_pred_reward()
         old_irs = self._get_sensor_observations()
         old_irs = [old_irs[i] for i in [1, 2, 3]]
         obj_in_front = False
@@ -108,6 +108,8 @@ class VRepEnv:
             # write dataframe to disk
             self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/{mode}_progress.tsv', sep='\t',
                            mode='w+')
+
+        self.observations = self.observations + old_reward + [old_action / len(self.actions)]
 
         return self.observations, reward, done, {}
 
@@ -231,18 +233,10 @@ class VRepEnv:
         max_index = _obs.index(max(_obs))
 
         # if max is in left or right, apply negative reward according to distance
-        if mid_index == max_index:
-            reward = _obs[max_index]
-        # if max is in mid, apply positive reward according to distance
+        if self._get_sensor_observations()[2] < 0.01:
+            reward = 20
         else:
-            # if 5 observations, reduce -ve reward to mid_left and mid_right
-            if len(_obs) > 3:
-                if mid_index-1 == max_index or mid_index+1 == max_index:
-                    reward = _obs[max_index]-0.7
-                else:
-                    reward = _obs[max_index]-1
-            else:    
-                reward = _obs[max_index]-1
+            reward = sum(_obs)/5
 
         return reward
 

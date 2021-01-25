@@ -4,10 +4,9 @@ client = ''
 ip = '127.0.0.1'
 
 
-actions = [(30, 30, 1000, 1),    #straight forward
-           (10, -10, 500, 1),   #spin right
-           (-10, 10, 500, 1)]   #spin left
-        #    (-25, -25, 300, -4)] #straight backwards
+actions = [(30, 30, 1000),    #straight forward
+           (10, -10, 500),   #spin right
+           (-10, 10, 500)]   #spin left
 
 # actions = [(80, 80, 50, 1),    #straight forward
 #            (30, -30, 50, 1),   #spin right
@@ -16,17 +15,6 @@ actions = [(30, 30, 1000, 1),    #straight forward
 #            (80, 40, 50, 1),
 #            (60, 80, 50, 1),
 #            (80, 60, 50, 1)]
-
-# actions = [
-#     (35, 35, 500, 1),       # forward (0)
-#     (10, 10, 500, 1),       # forward-slow (1)
-#     (10, 35, 500, 0.8),        # turn left (2)
-#     (35, 10, 500, 0.8),        # turn right (3)
-#     (-10, 10, 500, 0.4),      # spin left (4)
-#     (10, -10, 500, 0.4),      # spin right (5)
-#     #(-20, -10, 500, -1),     # backwards--turn-left (5)
-#     #(-10, -20, 500, -1),     # backwards--turn-right (6)
-# ]
 
 # ---
 

@@ -189,6 +189,8 @@ class OurDQN(OffPolicyRLModel):
             episode_rewards = [0.0]
             episode_successes = []
 
+            old_action = 0
+
             callback.on_training_start(locals(), globals())
             callback.on_rollout_start()
 
@@ -221,7 +223,7 @@ class OurDQN(OffPolicyRLModel):
                 env_action = action
                 reset = False
                 if self.role == 'pred':
-                    new_obs, rew, done, info = self.env.pred_step(env_action, epsilon=update_eps)
+                    new_obs, rew, done, info = self.env.pred_step(env_action, old_action, epsilon=update_eps)
                 else:
                     new_obs, rew, done, info = self.env.prey_step(env_action, epsilon=update_eps)
 
