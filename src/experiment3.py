@@ -3,19 +3,27 @@ from OurDQN import OurDQN, OurDQNLearningThread
 from OurMPLPolicy import OurMlpPolicy
 import info
 import pandas as pd
+import robobo
 
-env = VRepEnv(info.actions, 4)
+# init VRep connections
+rob = robobo.SimulationRobobo(info.client).connect(address=info.ip, port=19997)
+rob.play_simulation()
+prey = robobo.SimulationRoboboPrey().connect(address=info.ip, port=19989)
+
+pred_env = VRepEnv(rob, info.actions, 5, prey)
+prey_env = VRepEnv(rob, info.actions, 4, prey)
+
 mode = 'learning'
 if mode == 'learning':
-    pred_model = OurDQN(OurMlpPolicy, env, role='pred')
-    prey_model = OurDQN(OurMlpPolicy, env, role='prey')
-    #thread_pred = OurDQNLearningThread(pred_model, 25000, info.model_save_file)
-    thread_prey = OurDQNLearningThread(prey_model, 25000, 'prey_'+info.model_save_file )
-    #model.learn(total_timesteps=25000, model_saving_path=info.model_save_file)
-    #thread_pred.start()
+    pred_model = OurDQN(OurMlpPolicy, pred_env, role='pred')
+    prey_model = OurDQN(OurMlpPolicy, prey_env, role='prey')
+    thread_pred = OurDQNLearningThread(pred_model, 25000, info.model_save_file+'pred_')
+    thread_prey = OurDQNLearningThread(prey_model, 25000, info.model_save_file+'prey_')
+    # model.learn(total_timesteps=25000, model_saving_path=info.model_save_file)
+    thread_pred.start()
     thread_prey.start()
-    #thread_pred.join()
-    thread_prey.join()
+    # thread_pred.join()
+    # thread_prey.join()
     print('done learning')
 
 if mode == 'evaluating':

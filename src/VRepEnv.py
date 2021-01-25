@@ -14,17 +14,17 @@ import vrep
 class VRepEnv:
     """Class to plug the VRep simulator environment into the Stable - baseline DQN algorithm."""
 
-    def __init__(self, actions, n_observations):
+    def __init__(self, rob, actions, n_observations, prey=None):
         """
         :param actions: list of actions. Each action is a four-tuple (left_speed, right_speed, duration, direction(-1=backwards, 1=forward))
         :param n_observations: number of sensors
+        :param prey: is prey connected (cannot be None)
         """
-        self.rob = robobo.SimulationRobobo(info.client).connect(address=info.ip, port=19997)
+        self.rob = rob
         # using action and observation spaces of Gym to minimize code alterations.
         self.actions = actions
         self.action_space = Discrete(len(actions))
-        self.rob.play_simulation()
-        self.prey = robobo.SimulationRoboboPrey().connect(address=info.ip, port=19989)
+        self.prey = prey
         # self.prey.run()
         self.rob.set_phone_tilt(np.pi / 4.0, 10)
         self.pred_observations = self.get_camera_observations()
@@ -41,15 +41,21 @@ class VRepEnv:
         self.img = []
         self.mask = []
 
-    def reset(self):
+    def reset(self, role):
         '''
         Done at every episode end
+        :param role: 'pred' or 'prey'
         '''
         # validation measures
         self.accu_reward = 0
         self.time_passed = 0
 
-        return self.prey_observations
+        if role == 'pred':
+            return self.pred_observations
+        else:
+            return self.prey_observations
+
+
 
     def pred_step(self, action_index, old_action, epsilon=0, mode='learning'):
         """
@@ -84,10 +90,11 @@ class VRepEnv:
         self.accu_reward += reward
 
         # ------ printing for debugging
-        print('\n---- action:', action_index)
+        print('\n---- PREDATOR ----')
+        print('action:', action_index)
         print('reward:', reward)
-        print('elapsed time:', self.time_passed)
-        print('collected food:', self.food_eaten)
+        # print('elapsed time:', self.time_passed)
+        # print('collected food:', self.food_eaten)
 
         # ------ Stopping and resetting
         done = False
@@ -110,7 +117,7 @@ class VRepEnv:
             self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/{mode}_progress.tsv', sep='\t',
                            mode='w+')
 
-        self.observations = self.observations + old_reward + [old_action / len(self.actions)]
+        # self.observations = self.observations + old_reward + [old_action / len(self.actions)]
 
         return self.observations, reward, done, {}
 
@@ -131,7 +138,9 @@ class VRepEnv:
 
         # ------ Calculating reward
         reward = self._compute_sensor_penalty()
-        print('\n\nreward:', reward)
+        print('\n---- PREY ----')
+        print('action:', action_index)
+        print('reward:', reward)
         self.accu_reward += reward
 
         # ------ Getting validation metrics
@@ -189,11 +198,11 @@ class VRepEnv:
 
         cam_obs = [(np.sum(value) / (value.shape[0] * value.shape[1]))/255 for value in cam_values]
 
-        if include_sensor:
-            front_sensor = [self._get_sensor_observations()[2]]
-            observation = [front_sensor.append(cam_ob) for cam_ob in cam_obs]
-        else:
-            observation = cam_obs
+        # if include_sensor:
+        #     front_sensor = [self._get_sensor_observations()[2]]
+        #     observation = [front_sensor.append(cam_ob) for cam_ob in cam_obs]
+        # else:
+        observation = cam_obs
 
         self.img = image
         self.mask = mask
@@ -214,7 +223,7 @@ class VRepEnv:
         return observation
 
     def get_pred_reward(self):
-        _obs = self.observations
+        _obs = self.pred_observations
 
         # find mid in observation list
         mid_index = math.floor(len(_obs)/2)

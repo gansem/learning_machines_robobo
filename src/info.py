@@ -18,12 +18,12 @@ actions = [(30, 30, 1000),    #straight forward
 
 # ---
 
-task = 'foraging'
-user = 'andi'
-take = 'take_03'
-scene = 'food_arena'
+task = 'chasing_prey'
+user = 'et'
+take = 'take_01'
+scene = 'predator_prey_arena'
 model_save_file = f'./results/{task}/{user}/{take}/{scene}'
-model_load_file = f'./results/{task}/{user}/{take}/foraging_model'
+model_load_file = f'./results/{task}/{user}/{take}/chasing_prey_model'
 
 # create folder if they do not exist
 if not os.path.exists(f'./results/{task}'):

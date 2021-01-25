@@ -195,7 +195,7 @@ class OurDQN(OffPolicyRLModel):
             callback.on_rollout_start()
 
             reset = True
-            obs = self.env.reset()
+            obs = self.env.reset(self.role)
             # Retrieve unnormalized observation for saving into the buffer
             if self._vec_normalize_env is not None:
                 obs_ = self._vec_normalize_env.get_original_obs().squeeze()
@@ -224,8 +224,10 @@ class OurDQN(OffPolicyRLModel):
                 reset = False
                 if self.role == 'pred':
                     new_obs, rew, done, info = self.env.pred_step(env_action, old_action, epsilon=update_eps)
-                else:
+                elif self.role == 'prey':
                     new_obs, rew, done, info = self.env.prey_step(env_action, epsilon=update_eps)
+                else:
+                    new_obs, rew, done, info = self.env.step(env_action, epsilon=update_eps)
 
                 self.num_timesteps += 1
 
@@ -260,7 +262,7 @@ class OurDQN(OffPolicyRLModel):
                     if maybe_is_success is not None:
                         episode_successes.append(float(maybe_is_success))
                     if not isinstance(self.env, VecEnv):
-                        obs = self.env.reset()
+                        obs = self.env.reset(self.role)
                     episode_rewards.append(0.0)
                     reset = True
 
