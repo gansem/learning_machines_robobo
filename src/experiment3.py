@@ -1,14 +1,22 @@
 from VRepEnv import VRepEnv
-from OurDQN import OurDQN
+from OurDQN import OurDQN, OurDQNLearningThread
 from OurMPLPolicy import OurMlpPolicy
 import info
 import pandas as pd
 
 env = VRepEnv(info.actions, 5)
-mode = 'evaluating'
+mode = 'learning'
 if mode == 'learning':
-    model = OurDQN(OurMlpPolicy, env)
-    model.learn(total_timesteps=25000, model_saving_path=info.model_save_file)
+    pred_model = OurDQN(OurMlpPolicy, env, prey=False)
+    prey_model = OurDQN(OurMlpPolicy, env, prey=True)
+    thread_pred = OurDQNLearningThread(pred_model, 25000, info.model_save_file)
+    thread_prey = OurDQNLearningThread(prey_model, 25000, 'prey_'+info.model_save_file )
+    #model.learn(total_timesteps=25000, model_saving_path=info.model_save_file)
+    thread_pred.start()
+    thread_prey.start()
+    thread_prey.join()
+    thread_pred.join()
+    print('done learning')
 
 if mode == 'evaluating':
     i_eval = 2

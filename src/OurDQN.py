@@ -14,6 +14,7 @@ from stable_baselines.common.schedules import LinearSchedule
 from stable_baselines.common.buffers import ReplayBuffer, PrioritizedReplayBuffer
 from stable_baselines.deepq.build_graph import build_train
 from stable_baselines.deepq.policies import DQNPolicy, MlpPolicy
+import threading
 
 
 class OurDQN(OffPolicyRLModel):
@@ -56,7 +57,7 @@ class OurDQN(OffPolicyRLModel):
     :param n_cpu_tf_sess: (int) The number of threads for TensorFlow operations
         If None, the number of cpu of the current machine will be used.
     """
-    def __init__(self, policy, env, gamma=0.9, learning_rate=5e-4, buffer_size=50000, exploration_fraction=0.1,
+    def __init__(self, policy, env, prey, gamma=0.9, learning_rate=5e-4, buffer_size=50000, exploration_fraction=0.1,
                  exploration_final_eps=0.01, exploration_initial_eps=0.5, train_freq=1, batch_size=32, double_q=True,
                  learning_starts=1000, target_network_update_freq=500, prioritized_replay=False,
                  prioritized_replay_alpha=0.6, prioritized_replay_beta0=0.4, prioritized_replay_beta_iters=None,
@@ -68,6 +69,7 @@ class OurDQN(OffPolicyRLModel):
         super(OurDQN, self).__init__(policy=policy, env=env, replay_buffer=None, verbose=verbose, policy_base=DQNPolicy,
                                   requires_vec_env=False, policy_kwargs=policy_kwargs, seed=seed, n_cpu_tf_sess=n_cpu_tf_sess)
 
+        self.prey = prey
         self.param_noise = param_noise
         self.learning_starts = learning_starts
         self.train_freq = train_freq
@@ -218,7 +220,7 @@ class OurDQN(OffPolicyRLModel):
                     action = self.act(np.array(obs)[None], update_eps=update_eps, **kwargs)[0]
                 env_action = action
                 reset = False
-                new_obs, rew, done, info = self.env.step(env_action, epsilon=update_eps)
+                new_obs, rew, done, info = self.env.step(env_action, self.prey, epsilon=update_eps)
 
                 self.num_timesteps += 1
 
@@ -403,3 +405,14 @@ class OurDQN(OffPolicyRLModel):
         params_to_save = self.get_parameters()
 
         self._save_to_file(save_path, data=data, params=params_to_save, cloudpickle=cloudpickle)
+
+
+class OurDQNLearningThread(threading.Thread):
+    def __init__(self, ourDQNInstance, time_steps, model_saving_path):
+        super(OurDQNLearningThread, self).__init__()
+        self.OurDQNInstance = ourDQNInstance
+        self.time_steps = time_steps
+        self.model_saving_path = model_saving_path
+
+    def run(self):
+        self.OurDQNInstance.learn(total_timesteps=self.time_steps, model_saving_path=self.model_saving_path)

@@ -24,6 +24,7 @@ class VRepEnv:
         self.actions = actions
         self.action_space = Discrete(len(actions))
         self.rob.play_simulation()
+        self.prey = robobo.SimulationRoboboPrey().connect(address=info.ip, port=19989)
         # self.prey.run()
         self.rob.set_phone_tilt(np.pi / 4.0, 10)
         self.observations = self.get_camera_observations()
@@ -49,7 +50,7 @@ class VRepEnv:
 
         return self.observations
 
-    def step(self, action_index, epsilon=0, mode='learning'):
+    def step(self, action_index, prey, epsilon=0, mode='learning'):
         """
         Performs the action in the environment and returns the new observations (state), reward, done (?) and info(?)
 
@@ -57,58 +58,62 @@ class VRepEnv:
         :param epsilon: Current epsilon (for epsilon greedy; used here just for printing)
         :return: tuple of observed state, observed reward, wheter the episode is done and information (not used here)
         """
-        # ----- Performing action
-        #old_reward = self.get_reward()
-        old_irs = self._get_sensor_observations()
-        old_irs = [old_irs[i] for i in [1, 2, 3]]
-        obj_in_front = False
-        for irs in old_irs:
-            if irs < 0.15:
-                obj_in_front = True
-                break
-        old_amount_food = self.food_eaten
-        action = self.actions[action_index]
-        # perform action in environment
-        self.rob.move(action[0], action[1], action[2])
-        # save stopping ir readings for relevant sensors
-        self.observations = self.get_camera_observations()
-        self.time_passed += action[2]
-        self.food_eaten = self.rob.collected_food() - self.episode_counter * len(self.food_names)
+        if not prey:  #this if else is just for testing. Makes sense to have two different methods
+            # ----- Performing action
+            #old_reward = self.get_reward()
+            old_irs = self._get_sensor_observations()
+            old_irs = [old_irs[i] for i in [1, 2, 3]]
+            obj_in_front = False
+            for irs in old_irs:
+                if irs < 0.15:
+                    obj_in_front = True
+                    break
+            old_amount_food = self.food_eaten
+            action = self.actions[action_index]
+            # perform action in environment
+            self.rob.move(action[0], action[1], action[2])
+            # save stopping ir readings for relevant sensors
+            self.observations = self.get_camera_observations()
+            self.time_passed += action[2]
+            #self.food_eaten = self.rob.collected_food() - self.episode_counter * len(self.food_names)
 
-        # ------ Calculating reward
-        reward = self.get_reward()
-        if old_amount_food < self.food_eaten and obj_in_front:  # food must be in front of it and robobo must eat it
-            reward += 20
-        self.accu_reward += reward
+            # ------ Calculating reward
+            reward = self.get_reward()
+            if old_amount_food < self.food_eaten and obj_in_front:  # food must be in front of it and robobo must eat it
+                reward += 20
+            self.accu_reward += reward
 
-        # ------ printing for debugging
-        print('\n---- action:', action_index)
-        print('reward:', reward)
-        print('elapsed time:', self.time_passed)
-        print('collected food:', self.food_eaten)
+            # ------ printing for debugging
+            print('\n---- action:', action_index)
+            print('reward:', reward)
+            print('elapsed time:', self.time_passed)
+            print('collected food:', self.food_eaten)
 
-        # ------ Stopping and resetting
-        done = False
-        if self.food_eaten == len(self.food_names):
-            done = True
+            # ------ Stopping and resetting
+            done = False
+            if self.food_eaten == len(self.food_names):
+                done = True
 
-        # reset metrics after each episode
-        if done:
-            print('episode done')
-            self.episode_counter += 1
-            self.food_eaten = 0
-            self._reset_food()
-            # save the normalized time in dataframe
-            entry = {'avg_food_distance': self.get_avg_food_distance(),
-                     'time_passed': self.time_passed,
-                     'accu_reward': self.accu_reward}
-            self.df = self.df.append(entry, ignore_index=True)
+            # reset metrics after each episode
+            if done:
+                print('episode done')
+                self.episode_counter += 1
+                self.food_eaten = 0
+                self._reset_food()
+                # save the normalized time in dataframe
+                entry = {'avg_food_distance': self.get_avg_food_distance(),
+                         'time_passed': self.time_passed,
+                         'accu_reward': self.accu_reward}
+                self.df = self.df.append(entry, ignore_index=True)
 
-            # write dataframe to disk
-            self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/{mode}_progress.tsv', sep='\t',
-                           mode='w+')
+                # write dataframe to disk
+                self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/{mode}_progress.tsv', sep='\t',
+                               mode='w+')
 
-        return self.observations, reward, done, {}
+            return self.observations, reward, done, {}
+        else:  # dummy action for prey
+            self.prey.move(10, 10, 500)
+            return self.observations, 1, False, {}
 
     def get_camera_observations(self, include_sensor=False):
         image = self.rob.get_image_front()
