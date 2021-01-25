@@ -19,8 +19,8 @@ def terminate_program(signal_number, frame):
 def main():
     signal.signal(signal.SIGINT, terminate_program)
 
-    rob = robobo.SimulationRobobo().connect(address='192.168.0.109', port=19997)
-    prey_agent = robobo.SimulationRoboboPrey().connect(address='192.168.0.109', port=19791)
+    rob = robobo.SimulationRobobo('#1').connect(address='127.0.0.1', port=19997)
+    prey_agent = robobo.SimulationRoboboPrey('#0').connect(address='127.0.0.1', port=19997)
 
     rob.play_simulation()
 

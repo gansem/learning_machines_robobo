@@ -9,6 +9,14 @@ actions = [(30, 30, 1000, 1),    #straight forward
            (-10, 10, 500, 1)]   #spin left
         #    (-25, -25, 300, -4)] #straight backwards
 
+# actions = [(80, 80, 50, 1),    #straight forward
+#            (30, -30, 50, 1),   #spin right
+#            (-30, 30, 50, 1) ,   #spin left
+#            (40, 80 , 50, 1),
+#            (80, 40, 50, 1),
+#            (60, 80, 50, 1),
+#            (80, 60, 50, 1)]
+
 # actions = [
 #     (35, 35, 500, 1),       # forward (0)
 #     (10, 10, 500, 1),       # forward-slow (1)
