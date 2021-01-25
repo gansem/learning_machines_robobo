@@ -27,7 +27,8 @@ class VRepEnv:
         self.prey = robobo.SimulationRoboboPrey().connect(address=info.ip, port=19989)
         # self.prey.run()
         self.rob.set_phone_tilt(np.pi / 4.0, 10)
-        self.observations = self.get_camera_observations()
+        self.pred_observations = self.get_camera_observations()
+        self.prey_observations = self._get_sensor_observations()
         self.observation_space = Box(low=0.0, high=1.0, shape=(n_observations,))
         self.time_passed = 0
         self.df = pd.DataFrame()
@@ -48,7 +49,7 @@ class VRepEnv:
         self.accu_reward = 0
         self.time_passed = 0
 
-        return self.observations
+        return self.prey_observations
 
     def pred_step(self, action_index, epsilon=0, mode='learning'):
         """
@@ -120,57 +121,45 @@ class VRepEnv:
         :return: tuple of observed state, observed reward, wheter the episode is done and information (not used here)
         """
         # ----- Performing action
-        # old_reward = self.prey_rd()
-        old_irs = self._get_sensor_observations()
-        old_irs = [old_irs[i] for i in [1, 2, 3]]
-        obj_in_front = False
-        for irs in old_irs:
-            if irs < 0.15:
-                obj_in_front = True
-                break
-        old_amount_food = self.food_eaten
         action = self.actions[action_index]
         # perform action in environment
-        self.rob.move(action[0], action[1], action[2])
+        self.prey.move(action[0], action[1], action[2])
         # save stopping ir readings for relevant sensors
-        self.observations = self.get_camera_observations()
-        self.time_passed += action[2]
-        # self.food_eaten = self.rob.collected_food() - self.episode_counter * len(self.food_names)
+        self.prey_observations = self._get_sensor_observations()
 
         # ------ Calculating reward
-        reward = self.get_prey_reward()
-        if old_amount_food < self.food_eaten and obj_in_front:  # food must be in front of it and robobo must eat it
-            reward += 20
+        reward = self._compute_sensor_penalty()
+        print('\n\nreward:', reward)
         self.accu_reward += reward
 
-        # ------ printing for debugging
-        print('\n---- action:', action_index)
-        print('reward:', reward)
-        print('elapsed time:', self.time_passed)
-        print('collected food:', self.food_eaten)
+        # ------ Getting validation metrics
+        # validation_metrics = self.get_validation_metrics(task, action_index, reward, distance, epsilon)
+        # # write to dataframe
+        # self.df = self.df.append(validation_metrics, ignore_index=True)
 
-        # ------ Stopping and resetting
+        # if time passed supersedes threshold, stop episode
         done = False
-        if self.food_eaten == len(self.food_names):
-            done = True
+        # self.time_passed += action[2]
+        # if self.time_passed >= self.time_per_episode:
+        #     done = True
 
         # reset metrics after each episode
         if done:
-            print('episode done')
-            self.episode_counter += 1
-            self.food_eaten = 0
-            self._reset_food()
-            # save the normalized time in dataframe
-            entry = {'avg_food_distance': self.get_avg_food_distance(),
-                     'time_passed': self.time_passed,
-                     'accu_reward': self.accu_reward}
-            self.df = self.df.append(entry, ignore_index=True)
-
             # write dataframe to disk
-            self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/{mode}_progress.tsv', sep='\t',
-                           mode='w+')
+            #self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/learning_progress.tsv', sep='\t', mode='w+')
 
-        return self.observations, reward, done, {}
+            # validation measures
+            self.v_measure_calc_distance = 0
+            self.accu_v_measure_sensor_distance = 0
+            self.accu_reward = 0
+            self.episode_counter += 1
+
+        return self.prey_observations, reward, done, {}
+
+    def _compute_sensor_penalty(self):
+        errors = np.array([1.5 / math.sqrt(self.prey_observations[i]) for i in range(len(self.prey_observations))])
+        sum = errors.sum() / 4
+        return -sum + 4
 
     def get_camera_observations(self, include_sensor=False):
         image = self.rob.get_image_front()
@@ -213,7 +202,7 @@ class VRepEnv:
         '''
         Reads sensor information and returns normalized an thresholded values.
         '''
-        observation = self.rob.read_irs()
+        observation = self.prey.read_irs()
         observation = [observation[i] for i in [1, 3, 5, 7]]  # reading only sensors: backC, frontRR,  frontC, frontLL
         observation = [0.15 if observation[i] == False else observation[i] for i in
                        range(len(observation))]  # false -> 0.15
