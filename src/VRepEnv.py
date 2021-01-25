@@ -205,11 +205,11 @@ class VRepEnv:
 
         cam_obs = [(np.sum(value) / (value.shape[0] * value.shape[1]))/255 for value in cam_values]
 
-        # if include_sensor:
-        #     front_sensor = [self._get_sensor_observations()[2]]
-        #     observation = [front_sensor.append(cam_ob) for cam_ob in cam_obs]
-        # else:
-        observation = cam_obs
+        if include_sensor:
+            front_sensor = [self._get_sensor_observations()[2]]
+            observation = [front_sensor.append(cam_ob) for cam_ob in cam_obs]
+        else:
+            observation = cam_obs
 
         self.img = image
         self.mask = mask
