@@ -14,18 +14,18 @@ import vrep
 class VRepEnv:
     """Class to plug the VRep simulator environment into the Stable - baseline DQN algorithm."""
 
-    def __init__(self, rob, actions, n_observations, prey=None):
+    def __init__(self, pred, actions, n_observations, prey=None):
         """
         :param actions: list of actions. Each action is a four-tuple (left_speed, right_speed, duration, direction(-1=backwards, 1=forward))
         :param n_observations: number of sensors
         :param prey: is prey connected (cannot be None)
         """
-        self.rob = rob
+        self.pred = pred
         # using action and observation spaces of Gym to minimize code alterations.
         self.actions = actions
         self.action_space = Discrete(len(actions))
         self.prey = prey
-        self.rob.set_phone_tilt(np.pi / 4.0, 10)
+        self.pred.set_phone_tilt(np.pi / 4.0, 10)
         self.pred_observations = self.get_camera_observations() + [0.0]*6
         self.prey_observations = self._get_sensor_observations()
         self.observation_space = Box(low=0.0, high=1.0, shape=(n_observations,))
@@ -67,7 +67,7 @@ class VRepEnv:
             
         action = self.actions[action_index]
         # perform action in environment
-        self.rob.move(action[0], action[1], action[2])
+        self.pred.move(action[0], action[1], action[2])
         # get camera observations
         self.pred_observations = self.get_camera_observations()
         # append time passed from respective action
@@ -108,11 +108,11 @@ class VRepEnv:
             self.df = self.df.append(entry, ignore_index=True)
 
             # write dataframe to disk
-            self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/{mode}_progress.tsv', sep='\t',
+            self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/pred_{mode}_progress.tsv', sep='\t',
                            mode='w+')
 
-            # sleep for 5 seconds emulating reset pos
-            self.rob.sleep(10)
+            # sleep for 10 seconds emulating reset pos
+            self.pred.sleep(10)
 
         self.pred_observations = self.pred_observations + old_obs + [(action_index+1) / len(self.actions)]
 
@@ -132,37 +132,36 @@ class VRepEnv:
         self.prey.move(action[0], action[1], action[2])
         # save stopping ir readings for relevant sensors
         self.prey_observations = self._get_sensor_observations()
-
+        # append time passed from respective action
+        self.time_passed += action[2]
+        
         # ------ Calculating reward
         reward = self._compute_sensor_penalty()
+        self.accu_reward += reward
         print('\n---- PREY ----')
         print('action:', action_index)
         print('reward:', reward)
-        self.accu_reward += reward
-
-        # ------ Getting validation metrics
-        # validation_metrics = self.get_validation_metrics(task, action_index, reward, distance, epsilon)
-        # # write to dataframe
-        # self.df = self.df.append(validation_metrics, ignore_index=True)
 
         # if time passed supersedes threshold, stop episode
         done = False
-        # Todo: prey episode is never terminated! so also the data is never saved!
+        if self.time_passed >= 30000:
+            done = True
+            print('! TIME PASSED !')
 
-        # self.time_passed += action[2]
-        # if self.time_passed >= self.time_per_episode:
-        #     done = True
-
-        # reset metrics after each episode
+        # ------ Getting validation metrics
         if done:
-            # write dataframe to disk
-            #self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/learning_progress.tsv', sep='\t', mode='w+')
-
-            # validation measures
-            self.v_measure_calc_distance = 0
-            self.accu_v_measure_sensor_distance = 0
-            self.accu_reward = 0
+            print('episode done')
             self.episode_counter += 1
+            # save the normalized time in dataframe
+            entry = {
+                'episode_index': self.episode_counter, 
+                'time_passed': self.time_passed,
+                'accu_reward': self.accu_reward,
+                }
+            self.df = self.df.append(entry, ignore_index=True)
+
+            # write dataframe to dataframe
+            self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/prey_{mode}_progress.tsv', sep='\t', mode='w+')
 
         return self.prey_observations, reward, done, {}
 
@@ -172,12 +171,8 @@ class VRepEnv:
         return -sum + 4
 
     def get_camera_observations(self):
-        image = self.rob.get_image_front()
+        image = self.pred.get_image_front()
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-
-        # Uncomment for foraging
-        # low = np.array([25, 52, 72])
-        # high = np.array([102, 255, 255])
 
         # Uncomment for prey
         low = np.array([0, 50, 20])
@@ -197,12 +192,10 @@ class VRepEnv:
 
         cam_obs = [(np.sum(value) / (value.shape[0] * value.shape[1]))/255 for value in cam_values]
 
-        observation = cam_obs
-
         self.img = image
         self.mask = mask
 
-        return observation
+        return cam_obs
 
     def _get_sensor_observations(self, pred=False):
         '''
@@ -211,7 +204,7 @@ class VRepEnv:
         # all sensors: backR, backC, backL, frontRR, frontR, frontC, frontL, frontLL]
         # reading only sensors: backC, frontRR,  frontC, frontLL
         if pred:
-            observation = [self.rob.read_irs()[i] for i in [3, 5, 7]]
+            observation = [self.pred.read_irs()[i] for i in [3, 5, 7]]
         else:
             observation = [self.prey.read_irs()[i] for i in [1, 3, 5, 7]]
         observation = [0.15 if observation[i] == False else observation[i] for i in
