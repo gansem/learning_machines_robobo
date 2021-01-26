@@ -7,7 +7,8 @@ prey_actions = [
     (40, 40, 100), 
     (-15, 15, 100), 
     (15, -15, 100), 
-    (-40, -40, 100)]
+    # (-40, -40, 100)
+    ]
 
 pred_actions = [
     (40, 40, 100), 
@@ -18,7 +19,8 @@ pred_actions = [
     (40, 30, 100), 
     (30, 40, 100)]
 
-# actions = [(30, 30, 1000),    #straight forward
+# task 1
+# prey_actions = [(30, 30, 1000),    #straight forward
 #            (10, -10, 500),   #spin right
 #            (-10, 10, 500)]   #spin left
 

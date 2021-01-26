@@ -422,3 +422,20 @@ class OurDQNLearningThread(threading.Thread):
 
     def run(self):
         self.OurDQNInstance.learn(total_timesteps=self.time_steps, model_saving_path=self.model_saving_path)
+
+class OurDQNEvaluatingThread(threading.Thread):
+    def __init__(self, env, role, model_loading_path):
+        super(OurDQNEvaluatingThread, self).__init__()
+        self.model = OurDQN.load(model_loading_path)
+        self.env = env
+        self.role = role
+        self.obs = env.reset(role=role)
+
+    def run(self):
+        while True:
+            action, _states = self.model.predict(self.obs)
+            if self.role == 'pred':
+                self.obs, rewards, done, _info = self.env.pred_step(action, mode='evaluating')
+            else:
+                self.obs, rewards, done, _info = self.env.prey_step(action, mode='evaluating')
+        

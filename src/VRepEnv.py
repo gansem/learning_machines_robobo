@@ -25,7 +25,7 @@ class VRepEnv:
         self.actions = actions
         self.action_space = Discrete(len(actions))
         self.prey = prey
-        self.pred.set_phone_tilt(np.pi / 4.0, 10)
+        self.pred.set_phone_tilt(np.pi / 3.75, 10)
         self.pred_observations = self.get_camera_observations() + [0.0]*6
         self.prey_observations = self._get_sensor_observations()
         self.observation_space = Box(low=0.0, high=1.0, shape=(n_observations,))
@@ -54,7 +54,7 @@ class VRepEnv:
         else:
             return self.prey_observations
 
-    def pred_step(self, action_index, old_action, epsilon=0, mode='learning'):
+    def pred_step(self, action_index, epsilon=0, mode='learning'):
         """
         Performs the action in the environment and returns the new observations (state), reward, done (?) and info(?)
 
@@ -85,15 +85,17 @@ class VRepEnv:
 
         # ------ Stopping and resetting
         # reset every 30s or as soon as prey is caught
+
         done = False
-        if self.time_passed >= 30000:
-            done = True
-            print('! TIME PASSED !')
-        # 20 = reward for eating prey, change if reward changes
-        if reward >= 20:
-            self.winner = 'pred'
-            done = True
-            print('! PREY CAUGHT !')
+        if mode == 'learning':
+            if self.time_passed >= 30000:
+                done = True
+                print('! TIME PASSED !')
+            # 20 = reward for eating prey, change if reward changes
+            if reward >= 20:
+                self.winner = 'pred'
+                done = True
+                print('! PREY CAUGHT !')
 
         # reset metrics after each episode
         if done:
@@ -111,8 +113,10 @@ class VRepEnv:
             self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/pred_{mode}_progress.tsv', sep='\t',
                            mode='w+')
 
+            # move back
+            self.pred.move(-20, -20, 2000)
             # sleep for 10 seconds emulating reset pos
-            self.pred.sleep(10)
+            self.pred.sleep(4)
 
         self.pred_observations = self.pred_observations + old_obs + [(action_index+1) / len(self.actions)]
 
@@ -144,9 +148,10 @@ class VRepEnv:
 
         # if time passed supersedes threshold, stop episode
         done = False
-        if self.time_passed >= 30000:
-            done = True
-            print('! TIME PASSED !')
+        if mode == 'learning':
+            if self.time_passed >= 30000:
+                done = True
+                print('! TIME PASSED !')
 
         # ------ Getting validation metrics
         if done:

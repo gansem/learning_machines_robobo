@@ -1,5 +1,5 @@
 from VRepEnv import VRepEnv
-from OurDQN import OurDQN, OurDQNLearningThread
+from OurDQN import OurDQN, OurDQNLearningThread, OurDQNEvaluatingThread
 from OurMPLPolicy import OurMlpPolicy
 import info
 import pandas as pd
@@ -20,9 +20,11 @@ rob = robobo.SimulationRobobo(info.client).connect(address=info.ip, port=19997)
 rob.play_simulation()
 prey = robobo.SimulationRoboboPrey().connect(address=info.ip, port=19989)
 pred_env = VRepEnv(rob, info.pred_actions, 11, prey)
-prey_env = VRepEnv(rob, info.prey_actions, 4, prey)
+prey_env = VRepEnv(rob, info.prey_actions, 3, prey)
 
-mode = 'learning'
+# mode = 'learning'
+mode = 'evaluating'
+
 if mode == 'learning':
     pred_model = OurDQN(OurMlpPolicy, pred_env, role='pred', policy_kwargs={'layers': [12, 8]})
     prey_model = OurDQN(OurMlpPolicy, prey_env, role='prey', policy_kwargs={'layers': [5, 5]})
@@ -36,24 +38,29 @@ if mode == 'learning':
     print('done learning')
 
 if mode == 'evaluating':
-    i_eval = 2
-    models_to_evaluate = [f'./results/foraging/seb/final_model/robobo_food_arena_2.92.model']#,f'E:/Uni/Learning_Machines/learning_machines_robobo/src/results/foraging/andi/take_01/food_arena_1.25.model']
+    thread_pred = OurDQNEvaluatingThread(pred_env, 'pred', './results/chasing_prey/et/take_01/pred_model/predator_prey_arena_pred__3.47.model')
+    thread_prey = OurDQNEvaluatingThread(prey_env, 'prey', './results/obstacle_avoidance/andi/take_02/scene_04_6.5.model')
     n_samples = 50
     results = pd.DataFrame()
-    model_ind = 0
-    for model in models_to_evaluate:
-        model_ind += 1
-        # reset data
-        env.df = pd.DataFrame()
-        model = OurDQN.load(model)
-        for i in range(n_samples):
-            obs = env.reset()
-            done = False
-            while not done:  # do an episode
-                action, _states = model.predict(obs)
-                obs, rewards, done, _info = env.step(action, mode=mode)
-        result = pd.read_csv(f'./results/{info.task}/{info.user}/{info.take}/{mode}_progress.tsv', sep='\t')
-        ind_col = [model_ind for i in range(n_samples)]
-        result['Model_ind'] = ind_col
-        results = results.append(result, ignore_index=True)
-        results.to_csv(f'./results/{info.task}/evaluation/eval_{i_eval}.tsv', sep='\t', mode='w+')
+
+    thread_pred.start()
+    thread_prey.start()
+
+
+    # model_ind = 0
+    # for model in models_to_evaluate:
+    #     model_ind += 1
+    #     # reset data
+    #     env.df = pd.DataFrame()
+    #     model = OurDQN.load(model)
+    #     for i in range(n_samples):
+    #         obs = env.reset()
+    #         done = False
+    #         while not done:  # do an episode
+    #             action, _states = model.predict(obs)
+    #             obs, rewards, done, _info = env.step(action, mode=mode)
+    #     result = pd.read_csv(f'./results/{info.task}/{info.user}/{info.take}/{mode}_progress.tsv', sep='\t')
+    #     ind_col = [model_ind for i in range(n_samples)]
+    #     result['Model_ind'] = ind_col
+    #     results = results.append(result, ignore_index=True)
+    #     results.to_csv(f'./results/{info.task}/evaluation/eval_{i_eval}.tsv', sep='\t', mode='w+')
