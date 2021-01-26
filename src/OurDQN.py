@@ -124,7 +124,6 @@ class OurDQN(OffPolicyRLModel):
                 test_policy = self.policy
             assert issubclass(test_policy, DQNPolicy), "Error: the input policy for the DQN model must be " \
                                                        "an instance of DQNPolicy."
-
             self.graph = tf.Graph()
             with self.graph.as_default():
                 self.set_random_seed(self.seed)

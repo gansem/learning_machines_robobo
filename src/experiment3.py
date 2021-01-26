@@ -7,9 +7,11 @@ import robobo
 import signal
 import sys
 
+
 def terminate_program(signal_number, frame):
     print("Ctrl-C received, terminating program")
     sys.exit(1)
+
 
 signal.signal(signal.SIGINT, terminate_program)
 
@@ -22,8 +24,8 @@ prey_env = VRepEnv(rob, info.prey_actions, 4, prey)
 
 mode = 'learning'
 if mode == 'learning':
-    pred_model = OurDQN(OurMlpPolicy, pred_env, role='pred')
-    prey_model = OurDQN(OurMlpPolicy, prey_env, role='prey')
+    pred_model = OurDQN(OurMlpPolicy, pred_env, role='pred', policy_kwargs={'layers': [12, 8]})
+    prey_model = OurDQN(OurMlpPolicy, prey_env, role='prey', policy_kwargs={'layers': [5, 5]})
     thread_pred = OurDQNLearningThread(pred_model, 25000, info.model_save_file+'_pred_')
     thread_prey = OurDQNLearningThread(prey_model, 25000, info.model_save_file+'_prey_')
     # model.learn(total_timesteps=25000, model_saving_path=info.model_save_file)
