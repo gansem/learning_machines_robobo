@@ -17,8 +17,8 @@ signal.signal(signal.SIGINT, terminate_program)
 rob = robobo.SimulationRobobo(info.client).connect(address=info.ip, port=19997)
 rob.play_simulation()
 prey = robobo.SimulationRoboboPrey().connect(address=info.ip, port=19989)
-pred_env = VRepEnv(rob, info.actions, 11, prey)
-prey_env = VRepEnv(rob, info.actions, 4, prey)
+pred_env = VRepEnv(rob, info.pred_actions, 11, prey)
+prey_env = VRepEnv(rob, info.prey_actions, 4, prey)
 
 mode = 'learning'
 if mode == 'learning':
