@@ -218,14 +218,23 @@ class VRepEnv:
         cam_obs = self.pred_observations
         ir_obs = self._get_sensor_observations(pred=True)[1:]
 
-        close = False
+        # object is close to predator
+        ir_close = False
         for v in ir_obs:
             if v < 0.05:
-                close = True
+                ir_close = True
+                break
+        # prey is visible in camera
+        cam_close = False
+        for v in cam_obs:
+            if v > 0.25:
+                cam_close = True
+                break
 
         # if an object is object sensed and prey is visible
-        if close and any(cam_obs):
+        if ir_close and cam_close:
             print(ir_obs)
+            print(cam_close)
             reward = 20
         else:
             reward = sum(cam_obs)/5
