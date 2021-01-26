@@ -210,7 +210,10 @@ class VRepEnv:
         '''
         # all sensors: backR, backC, backL, frontRR, frontR, frontC, frontL, frontLL]
         # reading only sensors: backC, frontRR,  frontC, frontLL
-        observation = [self.prey.read_irs()[i] for i in [1, 3, 5, 7]]
+        if pred:
+            observation = [self.rob.read_irs()[i] for i in [3, 5, 7]]
+        else:
+            observation = [self.prey.read_irs()[i] for i in [1, 3, 5, 7]]
         observation = [0.15 if observation[i] == False else observation[i] for i in
                        range(len(observation))]  # false -> 0.15
         # we need to introduce a threshold s.t. only distances below 0.15 are counted. Otherwise the distances
@@ -220,7 +223,7 @@ class VRepEnv:
 
     def get_pred_reward(self):
         cam_obs = self.pred_observations
-        ir_obs = self._get_sensor_observations()[1:]
+        ir_obs = self._get_sensor_observations(pred=True)[1:]
 
         close = False
         for v in ir_obs:
