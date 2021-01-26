@@ -25,17 +25,14 @@ class VRepEnv:
         self.actions = actions
         self.action_space = Discrete(len(actions))
         self.prey = prey
-        # self.prey.run()
         self.rob.set_phone_tilt(np.pi / 4.0, 10)
-        self.pred_observations = self.get_camera_observations()
+        self.pred_observations = self.get_camera_observations() + [0.0]*6
         self.prey_observations = self._get_sensor_observations()
         self.observation_space = Box(low=0.0, high=1.0, shape=(n_observations,))
         self.time_passed = 0
         self.df = pd.DataFrame()
         self.accu_reward = 0
         self.episode_counter = 0
-        # self.food_names = ['Food', 'Food0', 'Food1', 'Food2', 'Food3', 'Food4', 'Food5']  # TOdO: make this generic for arbitraty foods
-        # self.food_eaten = 0
         self.winner = []
 
         # temp
@@ -57,8 +54,6 @@ class VRepEnv:
         else:
             return self.prey_observations
 
-
-
     def pred_step(self, action_index, old_action, epsilon=0, mode='learning'):
         """
         Performs the action in the environment and returns the new observations (state), reward, done (?) and info(?)
@@ -68,14 +63,7 @@ class VRepEnv:
         :return: tuple of observed state, observed reward, wheter the episode is done and information (not used here)
         """
         # ----- Performing action
-        # old_reward = self.get_pred_reward()
-        # old_irs = self._get_sensor_observations()
-        # old_irs = [old_irs[i] for i in [1, 2, 3]]
-        
-        # for irs in old_irs:
-        #     if irs < 0.15:
-        #         obj_in_front = True
-        #         break
+        old_obs = self.pred_observations[:5]
             
         action = self.actions[action_index]
         # perform action in environment
@@ -126,7 +114,7 @@ class VRepEnv:
             # sleep for 5 seconds emulating reset pos
             self.rob.sleep(10)
 
-        # self.observations = self.observations + old_reward + [old_action / len(self.actions)]
+        self.pred_observations = self.pred_observations + old_obs + [(action_index+1) / len(self.actions)]
 
         return self.pred_observations, reward, done, {}
 
@@ -159,6 +147,8 @@ class VRepEnv:
 
         # if time passed supersedes threshold, stop episode
         done = False
+        # Todo: prey episode is never terminated! so also the data is never saved!
+
         # self.time_passed += action[2]
         # if self.time_passed >= self.time_per_episode:
         #     done = True
@@ -181,7 +171,7 @@ class VRepEnv:
         sum = errors.sum() / 4
         return -sum + 4
 
-    def get_camera_observations(self, include_sensor=False):
+    def get_camera_observations(self):
         image = self.rob.get_image_front()
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
@@ -207,10 +197,6 @@ class VRepEnv:
 
         cam_obs = [(np.sum(value) / (value.shape[0] * value.shape[1]))/255 for value in cam_values]
 
-        # if include_sensor:
-        #     front_sensor = [self._get_sensor_observations()[2]]
-        #     observation = [front_sensor.append(cam_ob) for cam_ob in cam_obs]
-        # else:
         observation = cam_obs
 
         self.img = image
@@ -222,10 +208,9 @@ class VRepEnv:
         '''
         Reads sensor information and returns normalized an thresholded values.
         '''
+        # all sensors: backR, backC, backL, frontRR, frontR, frontC, frontL, frontLL]
         # reading only sensors: backC, frontRR,  frontC, frontLL
-        observation = [self.rob.read_irs()[i] for i in [1, 3, 5, 7]]
-        if pred:
-            observation = [self.rob.read_irs()[i] for i in [4, 5, 6]]
+        observation = [self.prey.read_irs()[i] for i in [1, 3, 5, 7]]
         observation = [0.15 if observation[i] == False else observation[i] for i in
                        range(len(observation))]  # false -> 0.15
         # we need to introduce a threshold s.t. only distances below 0.15 are counted. Otherwise the distances
@@ -235,7 +220,7 @@ class VRepEnv:
 
     def get_pred_reward(self):
         cam_obs = self.pred_observations
-        ir_obs = self._get_sensor_observations(pred=True)
+        ir_obs = self._get_sensor_observations()[1:]
 
         close = False
         for v in ir_obs:
@@ -250,77 +235,3 @@ class VRepEnv:
             reward = sum(cam_obs)/5
 
         return reward
-
-    def get_prey_reward(self):
-        _obs = self.prey_observations
-
-        # find mid in observation list
-        mid_index = math.floor(len(_obs)/2)
-        # find the most food in image section
-        max_index = _obs.index(max(_obs))
-
-        # if max is in left or right, apply negative reward according to distance
-        if mid_index == max_index:
-            reward = _obs[max_index]
-        # if max is in mid, apply positive reward according to distance
-        else:
-            # if 5 observations, reduce -ve reward to mid_left and mid_right
-            if len(_obs) > 3:
-                if mid_index-1 == max_index or mid_index+1 == max_index:
-                    reward = _obs[max_index]-0.7
-                else:
-                    reward = _obs[max_index]-1
-            else:
-                reward = _obs[max_index]-1
-
-        return reward
-
-    def get_avg_food_distance(self):
-        '''
-        Calculates the average distance of the food objects in the scene. Assuming that there are always 7 food objects.
-        :return: Average distance of food objects
-        '''
-        food_positions = []
-        # collect positions of all the foods
-        for food in self.food_names:
-            food_handle = vrep.unwrap_vrep(vrep.simxGetObjectHandle(self.rob._clientID, food, vrep.simx_opmode_blocking))
-            food_position = vrep.unwrap_vrep(vrep.simxGetObjectPosition(self.rob._clientID, food_handle, -1, vrep.simx_opmode_blocking))
-            food_positions.append(food_position)
-
-        food_positions = np.array(food_positions)
-
-        # compute all distances in the 2D plane
-        distances = []
-        for i in range(len(food_positions)):
-            for j in range(i+1, len(food_positions)):
-                distances.append(math.sqrt((food_positions[i][0] - food_positions[j][0])**2
-                                           + (food_positions[i][1] - food_positions[j][1])**2))
-
-        return np.array(distances).mean()
-
-    def _reset_food(self):
-        #collects positions of the walls (only works on standard map)
-        leftwall_handle = vrep.unwrap_vrep(vrep.simxGetObjectHandle(self.rob._clientID, '80cmHighWall200cm', vrep.simx_opmode_blocking))
-        pos_lw = vrep.unwrap_vrep(vrep.simxGetObjectPosition(self.rob._clientID, leftwall_handle, -1, vrep.simx_opmode_blocking))
-        
-        rightwall_handle = vrep.unwrap_vrep(vrep.simxGetObjectHandle(self.rob._clientID, '80cmHighWall200cm1', vrep.simx_opmode_blocking))
-        pos_rw = vrep.unwrap_vrep(vrep.simxGetObjectPosition(self.rob._clientID, rightwall_handle, -1, vrep.simx_opmode_blocking))
-        
-        bottomwall_handle = vrep.unwrap_vrep(vrep.simxGetObjectHandle(self.rob._clientID, '80cmHighWall200cm2', vrep.simx_opmode_blocking))
-        pos_bw = vrep.unwrap_vrep(vrep.simxGetObjectPosition(self.rob._clientID, bottomwall_handle, -1, vrep.simx_opmode_blocking))
-        
-        topwall_handle = vrep.unwrap_vrep(vrep.simxGetObjectHandle(self.rob._clientID, '80cmHighWall200cm0', vrep.simx_opmode_blocking))
-        pos_tw = vrep.unwrap_vrep(vrep.simxGetObjectPosition(self.rob._clientID, topwall_handle, -1, vrep.simx_opmode_blocking))
-        
-
-        food_handle = vrep.unwrap_vrep(vrep.simxGetObjectHandle(self.rob._clientID, 'Robobo#0', vrep.simx_opmode_blocking))
-        new_pos = vrep.unwrap_vrep(vrep.simxGetObjectPosition(self.rob._clientID, food_handle, -1, vrep.simx_opmode_blocking))
-        # from provided script on canvas
-        new_pos[0] = (rnd.uniform((pos_lw[0] + 0.25), (pos_rw[0] - 0.25)))
-        new_pos[1] = (rnd.uniform((pos_bw[1] + 0.25), (pos_tw[1] - 0.25)))
-        # check if it is placed on the robot
-        while self.rob.position()[0] + 0.25 > new_pos[0] > self.rob.position()[0] - 0.25 \
-                and self.rob.position()[1] + 0.25 > new_pos[1] > self.rob.position()[1] - 0.25:
-            new_pos[0] = (rnd.uniform((pos_lw[0] + 0.25), (pos_rw[0] - 0.25)))
-            new_pos[1] = (rnd.uniform((pos_bw[1] + 0.25), (pos_tw[1] - 0.25)))
-        vrep.simxSetObjectPosition(self.rob._clientID, food_handle, -1, new_pos, vrep.simx_opmode_blocking)
