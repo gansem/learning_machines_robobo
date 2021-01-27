@@ -143,8 +143,8 @@ class VRepEnv:
         # ------ Calculating reward
         reward = self._compute_sensor_penalty()
         # if moving forward, add bonus
-        if action[0] > 0 and action[0] == action[1]:
-            reward += 0.2
+        # if action[0] > 0 and action[0] == action[1]:
+        #     reward += 0.2
         self.accu_reward += reward
         print('\n---- PREY ----')
         print('action:', action_index)
@@ -189,16 +189,16 @@ class VRepEnv:
         high = np.array([5, 255, 255])
         mask = cv2.inRange(hsv, low, high)
 
-        far_left = mask[:, 0:25]
-        #left = mask[:, 0:51]
-        mid_left = mask[:, 25:51]
+        #far_left = mask[:, 0:25]
+        left = mask[:, 0:51]
+        #mid_left = mask[:, 25:51]
         mid = mask[:, 51:77]
-        mid_right = mask[:, 77:103]
-        #right = mask[:, 77:]
-        far_right = mask[:, 103:]
+        #mid_right = mask[:, 77:103]
+        right = mask[:, 77:]
+        #far_right = mask[:, 103:]
 
-        cam_values = [far_left, mid_left, mid, mid_right, far_right]
-        #cam_values = [left, mid, right]
+        #cam_values = [far_left, mid_left, mid, mid_right, far_right]
+        cam_values = [left, mid, right]
 
         cam_obs = [(np.sum(value) / (value.shape[0] * value.shape[1]))/255 for value in cam_values]
 
@@ -247,6 +247,6 @@ class VRepEnv:
             print(cam_close)
             reward = 20
         else:
-            reward = sum(cam_obs)/5
+            reward = 10 * sum(cam_obs)/3
 
         return reward
