@@ -114,9 +114,9 @@ class VRepEnv:
                            mode='w+')
 
             # move back
-            self.pred.move(-20, -20, 2000)
+            self.pred.move(-20, -20, 3000)
             # sleep for 10 seconds emulating reset pos
-            self.pred.sleep(4)
+            self.pred.sleep(3)
 
         self.pred_observations = self.pred_observations + old_obs + [(action_index+1) / len(self.actions)]
 
@@ -141,6 +141,8 @@ class VRepEnv:
         
         # ------ Calculating reward
         reward = self._compute_sensor_penalty()
+        if action[0] > 0 and action[0] == action[1]:
+            reward += 0.2
         self.accu_reward += reward
         print('\n---- PREY ----')
         print('action:', action_index)

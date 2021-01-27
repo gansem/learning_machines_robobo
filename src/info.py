@@ -4,20 +4,18 @@ client = ''
 ip = '127.0.0.1'
 
 prey_actions = [
-    (40, 40, 100), 
-    (-15, 15, 100), 
-    (15, -15, 100), 
-    # (-40, -40, 100)
+    (40, 40, 100),
+    (-15, 15, 100),
+    (15, -15, 100),
+    (-40, -40, 100)
     ]
 
 pred_actions = [
-    (40, 40, 100), 
-    (-15, 15, 100), 
-    (15, -15, 100), 
-    (20, 40, 100), 
-    (40, 20, 100), 
-    (40, 30, 100), 
-    (30, 40, 100)]
+    (40, 40, 100),
+    (-15, 15, 100),
+    (15, -15, 100),
+    (20, 40, 100),
+    (40, 20, 100)]
 
 # task 1
 # prey_actions = [(30, 30, 1000),    #straight forward
@@ -35,8 +33,8 @@ pred_actions = [
 # ---
 
 task = 'chasing_prey'
-user = 'et'
-take = 'take_01'
+user = 'andi'
+take = 'take_02'
 scene = 'predator_prey_arena'
 model_save_file = f'./results/{task}/{user}/{take}/{scene}'
 pred_model_load_file = f'./results/{task}/{user}/{take}/pred_model'

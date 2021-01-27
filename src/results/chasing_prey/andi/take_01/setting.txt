@@ -1,0 +1,17 @@
+actions: prey_actions = [
+    (40, 40, 100),
+    (-15, 15, 100),
+    (15, -15, 100)]
+
+pred_actions = [
+    (40, 40, 100),
+    (-15, 15, 100),
+    (15, -15, 100)]
+
+pred going back 2 sec and then break 4sec after catching prey
+
+prey no reward for going forward
+
+replay buffer = 2000
+
+prey 2.22 is working fine

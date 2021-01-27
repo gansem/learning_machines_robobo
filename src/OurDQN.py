@@ -57,8 +57,8 @@ class OurDQN(OffPolicyRLModel):
     :param n_cpu_tf_sess: (int) The number of threads for TensorFlow operations
         If None, the number of cpu of the current machine will be used.
     """
-    def __init__(self, policy, env, role='pred', gamma=0.9, learning_rate=5e-4, buffer_size=2000, exploration_fraction=0.1,
-                 exploration_final_eps=0.05, exploration_initial_eps=0.5, train_freq=1, batch_size=32, double_q=True,
+    def __init__(self, policy, env, role='pred', gamma=0.9, learning_rate=5e-4, buffer_size=10000, exploration_fraction=0.1,
+                 exploration_final_eps=0.01, exploration_initial_eps=0.5, train_freq=1, batch_size=32, double_q=True,
                  learning_starts=1000, target_network_update_freq=500, prioritized_replay=False,
                  prioritized_replay_alpha=0.6, prioritized_replay_beta0=0.4, prioritized_replay_beta_iters=None,
                  prioritized_replay_eps=1e-6, param_noise=False,
@@ -222,7 +222,7 @@ class OurDQN(OffPolicyRLModel):
                 env_action = action
                 reset = False
                 if self.role == 'pred':
-                    new_obs, rew, done, info = self.env.pred_step(env_action, old_action, epsilon=update_eps)
+                    new_obs, rew, done, info = self.env.pred_step(env_action, epsilon=update_eps)
                 elif self.role == 'prey':
                     new_obs, rew, done, info = self.env.prey_step(env_action, epsilon=update_eps)
                 else:
