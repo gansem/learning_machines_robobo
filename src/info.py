@@ -32,18 +32,25 @@ pred_actions = [
 
 # ---
 
+mode = 'evaluating'
 task = 'chasing_prey'
-user = 'andi'
+user = 'et'
 take = 'take_02'
-scene = 'predator_prey_arena'
-model_save_file = f'./results/{task}/{user}/{take}/{scene}'
-pred_model_load_file = f'./results/{task}/{user}/{take}/pred_model'
-prey_model_load_file = f'./results/{task}/{user}/{take}/prey_model'
+scene = 'medium'
+model_save_file = f'./results/{task}/{user}/{take}/{mode}/{scene}'
+pred_model_load_file = f'./results/{task}/{user}/{take}/{mode}/pred_model/'
+prey_model_load_file = f'./results/{task}/{user}/{take}/{mode}/prey_model/'
 
-# create folder if they do not exist
+# create folders if they do not exist
 if not os.path.exists(f'./results/{task}'):
     os.makedirs(f'./results/{task}')
 if not os.path.exists(f'./results/{task}/{user}'):
     os.makedirs(f'./results/{task}/{user}')
 if not os.path.exists(f'./results/{task}/{user}/{take}'):
     os.makedirs(f'./results/{task}/{user}/{take}')
+if not os.path.exists(f'./results/{task}/{user}/{take}/{mode}'):
+    os.makedirs(f'./results/{task}/{user}/{take}/{mode}')
+if not os.path.exists(f'./results/{task}/{user}/{take}/{mode}/pred_model'):
+    os.makedirs(f'./results/{task}/{user}/{take}/{mode}/pred_model')
+if not os.path.exists(f'./results/{task}/{user}/{take}/{mode}/prey_model'):
+    os.makedirs(f'./results/{task}/{user}/{take}/{mode}/prey_model')

@@ -87,15 +87,14 @@ class VRepEnv:
         # reset every 30s or as soon as prey is caught
 
         done = False
-        if mode == 'learning':
-            if self.time_passed >= 30000:
-                done = True
-                print('! TIME PASSED !')
-            # 20 = reward for eating prey, change if reward changes
-            if reward >= 20:
-                self.winner = 'pred'
-                done = True
-                print('! PREY CAUGHT !')
+        if self.time_passed >= 30000:
+            done = True
+            print('! TIME PASSED !')
+        # 20 = reward for eating prey, change if reward changes
+        if reward >= 20:
+            done = True
+            self.winner = 'pred'
+            print('! PREY CAUGHT !')
 
         # reset metrics after each episode
         if done:
@@ -106,17 +105,19 @@ class VRepEnv:
                 'episode_index': self.episode_counter, 
                 'time_passed': self.time_passed,
                 'accu_reward': self.accu_reward,
+                'predator_pos': self.pred.position(),
+                'prey_pos': self.prey.position(),
                 'winner': self.winner}
             self.df = self.df.append(entry, ignore_index=True)
 
             # write dataframe to disk
-            self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/pred_{mode}_progress.tsv', sep='\t',
+            self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/{mode}/pred_{mode}_progress.tsv', sep='\t',
                            mode='w+')
 
             # move back
-            self.pred.move(-20, -20, 3000)
+            self.pred.move(-20, -20, 6000)
             # sleep for 10 seconds emulating reset pos
-            self.pred.sleep(3)
+            # self.pred.sleep(3)
 
         self.pred_observations = self.pred_observations + old_obs + [(action_index+1) / len(self.actions)]
 
@@ -141,6 +142,7 @@ class VRepEnv:
         
         # ------ Calculating reward
         reward = self._compute_sensor_penalty()
+        # if moving forward, add bonus
         if action[0] > 0 and action[0] == action[1]:
             reward += 0.2
         self.accu_reward += reward
@@ -150,10 +152,9 @@ class VRepEnv:
 
         # if time passed supersedes threshold, stop episode
         done = False
-        if mode == 'learning':
-            if self.time_passed >= 30000:
-                done = True
-                print('! TIME PASSED !')
+        if self.time_passed >= 30000:
+            done = True
+            print('! TIME PASSED !')
 
         # ------ Getting validation metrics
         if done:
@@ -164,11 +165,13 @@ class VRepEnv:
                 'episode_index': self.episode_counter, 
                 'time_passed': self.time_passed,
                 'accu_reward': self.accu_reward,
+                'prey_pos': self.prey.position(),
                 }
             self.df = self.df.append(entry, ignore_index=True)
 
             # write dataframe to dataframe
-            self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/prey_{mode}_progress.tsv', sep='\t', mode='w+')
+            self.df.to_csv(f'results/{info.task}/{info.user}/{info.take}/{mode}/prey_{mode}_progress.tsv', sep='\t', mode='w+')
+
 
         return self.prey_observations, reward, done, {}
 

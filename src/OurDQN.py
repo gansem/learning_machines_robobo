@@ -57,7 +57,7 @@ class OurDQN(OffPolicyRLModel):
     :param n_cpu_tf_sess: (int) The number of threads for TensorFlow operations
         If None, the number of cpu of the current machine will be used.
     """
-    def __init__(self, policy, env, role='pred', gamma=0.9, learning_rate=5e-4, buffer_size=10000, exploration_fraction=0.1,
+    def __init__(self, policy, env, role='pred', gamma=0.9, learning_rate=5e-4, buffer_size=30000, exploration_fraction=0.1,
                  exploration_final_eps=0.01, exploration_initial_eps=0.5, train_freq=1, batch_size=32, double_q=True,
                  learning_starts=1000, target_network_update_freq=500, prioritized_replay=False,
                  prioritized_replay_alpha=0.6, prioritized_replay_beta0=0.4, prioritized_replay_beta_iters=None,
@@ -429,13 +429,17 @@ class OurDQNEvaluatingThread(threading.Thread):
         self.model = OurDQN.load(model_loading_path)
         self.env = env
         self.role = role
-        self.obs = env.reset(role=role)
 
     def run(self):
-        while True:
-            action, _states = self.model.predict(self.obs)
-            if self.role == 'pred':
-                self.obs, rewards, done, _info = self.env.pred_step(action, mode='evaluating')
-            else:
-                self.obs, rewards, done, _info = self.env.prey_step(action, mode='evaluating')
+        n_samples = 50
+        for ep in range(n_samples):
+            obs = self.env.reset(self.role)
+            done = False
+            while not done:
+                action, _states = self.model.predict(obs)
+                if self.role == 'pred':
+                    obs, rewards, done, _info = self.env.pred_step(action, mode='evaluating')
+                else:
+                    obs, rewards, done, _info = self.env.prey_step(action, mode='evaluating')
+            print(1)
         

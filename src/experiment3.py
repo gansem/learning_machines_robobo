@@ -22,10 +22,9 @@ prey = robobo.SimulationRoboboPrey().connect(address=info.ip, port=19989)
 pred_env = VRepEnv(rob, info.pred_actions, 11, prey)
 prey_env = VRepEnv(rob, info.prey_actions, 4, prey)
 
-mode = 'learning'
-#mode = 'evaluating'
+# toggle mode from info.py
 
-if mode == 'learning':
+if info.mode == 'learning':
     pred_model = OurDQN(OurMlpPolicy, pred_env, role='pred', policy_kwargs={'layers': [12, 6]})
     prey_model = OurDQN(OurMlpPolicy, prey_env, role='prey', policy_kwargs={'layers': [5, 5]})
     thread_pred = OurDQNLearningThread(pred_model, 35000, info.model_save_file+'_pred_')
@@ -37,9 +36,11 @@ if mode == 'learning':
     # thread_prey.join()
     print('done learning')
 
-if mode == 'evaluating':
-    thread_pred = OurDQNEvaluatingThread(pred_env, 'pred', './results/chasing_prey/andi/take_01/predator_prey_arena_pred__3.19.model')
-    thread_prey = OurDQNEvaluatingThread(prey_env, 'prey', './results/chasing_prey/andi/take_01/predator_prey_arena_prey__6.94.model')
+if info.mode == 'evaluating':
+    # thread_pred = OurDQNEvaluatingThread(pred_env, 'pred', info.pred_model_load_file+'predator_prey_arena_pred__3.19.model')
+    # thread_prey = OurDQNEvaluatingThread(prey_env, 'prey', info.prey_model_load_file+'predator_prey_arena_prey__6.94.model')
+    thread_pred = OurDQNEvaluatingThread(pred_env, 'pred', './results/chasing_prey/et/take_02/evaluating/pred_model/predator_prey_arena_pred__2.22.model')
+    thread_prey = OurDQNEvaluatingThread(prey_env, 'prey', './results/chasing_prey/et/take_02/evaluating/prey_model/predator_prey_arena_prey__6.94.model')
     n_samples = 50
     results = pd.DataFrame()
 
