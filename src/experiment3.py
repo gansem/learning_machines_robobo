@@ -39,8 +39,8 @@ if info.mode == 'learning':
 if info.mode == 'evaluating':
     # thread_pred = OurDQNEvaluatingThread(pred_env, 'pred', info.pred_model_load_file+'predator_prey_arena_pred__3.19.model')
     # thread_prey = OurDQNEvaluatingThread(prey_env, 'prey', info.prey_model_load_file+'predator_prey_arena_prey__6.94.model')
-    thread_pred = OurDQNEvaluatingThread(pred_env, 'pred', './results/chasing_prey/et/take_02/evaluating/pred_model/predator_prey_arena_pred__2.22.model')
-    thread_prey = OurDQNEvaluatingThread(prey_env, 'prey', './results/chasing_prey/et/take_02/evaluating/prey_model/predator_prey_arena_prey__6.94.model')
+    thread_pred = OurDQNEvaluatingThread(pred_env, 'pred', './results/chasing_prey/et/take_04/learning/pred_model/medium_pred__4.86.model')
+    thread_prey = OurDQNEvaluatingThread(prey_env, 'prey', './results/chasing_prey/et/take_04/learning/prey_model/medium_prey__4.72.model')
     n_samples = 50
     results = pd.DataFrame()
 
