@@ -105,8 +105,8 @@ class VRepEnv:
                 'episode_index': self.episode_counter, 
                 'time_passed': self.time_passed,
                 'accu_reward': self.accu_reward,
-                # 'predator_pos': self.pred.position(),
-                # 'prey_pos': self.prey.position(),
+               # 'predator_pos': self.pred.position(),
+               # 'prey_pos': self.prey.position(),
                 'winner': self.winner}
             self.df = self.df.append(entry, ignore_index=True)
 

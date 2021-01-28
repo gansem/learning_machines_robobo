@@ -19,7 +19,7 @@ signal.signal(signal.SIGINT, terminate_program)
 rob = robobo.SimulationRobobo(info.client).connect(address=info.ip, port=19997)
 rob.play_simulation()
 prey = robobo.SimulationRoboboPrey().connect(address=info.ip, port=19989)
-pred_env = VRepEnv(rob, info.pred_actions, 11, prey)
+pred_env = VRepEnv(rob, info.pred_actions, 9, prey)
 prey_env = VRepEnv(rob, info.prey_actions, 4, prey)
 
 # toggle mode from info.py
@@ -27,6 +27,9 @@ prey_env = VRepEnv(rob, info.prey_actions, 4, prey)
 if info.mode == 'learning':
     pred_model = OurDQN(OurMlpPolicy, pred_env, role='pred', policy_kwargs={'layers': [12, 6]})
     prey_model = OurDQN(OurMlpPolicy, prey_env, role='prey', policy_kwargs={'layers': [5, 5]})
+    # if you want to train already learned models
+    # pred_model = OurDQN.load('./results/chasing_prey/andi/take_04/predator_prey_arena_pred__2.22.model')
+    # prey_model = OurDQN.load('./results/chasing_prey/andi/take_04/predator_prey_arena_prey__3.06.model')
     thread_pred = OurDQNLearningThread(pred_model, 50000, info.model_save_file+'_pred_')
     thread_prey = OurDQNLearningThread(prey_model, 80000, info.model_save_file+'_prey_')
     # model.learn(total_timesteps=25000, model_saving_path=info.model_save_file)

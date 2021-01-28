@@ -4,13 +4,13 @@ client = ''
 ip = '127.0.0.1'
 
 prey_actions = [
-    (40, 40, 100),
+    (40, 40, 500),
     (-15, 15, 100),
     (15, -15, 100),
     (-40, -40, 100)]
 
 pred_actions = [
-    (40, 40, 100),
+    (40, 40, 500),
     (-15, 15, 100),
     (15, -15, 100),
     (20, 40, 100),
@@ -34,11 +34,11 @@ pred_actions = [
 mode = 'evaluating'
 task = 'chasing_prey'
 user = 'andi'
-take = 'take_04'
-scene = 'medium'
-model_save_file = f'./results/{task}/{user}/{take}/{mode}/{scene}'
-pred_model_load_file = f'./results/{task}/{user}/{take}/{mode}/pred_model/'
-prey_model_load_file = f'./results/{task}/{user}/{take}/{mode}/prey_model/'
+take = 'take_08'
+scene = 'predator_prey_arena'
+model_save_file = f'./results/{task}/{user}/{take}/{scene}'
+pred_model_load_file = f'./results/{task}/{user}/{take}/pred_model'
+prey_model_load_file = f'./results/{task}/{user}/{take}/prey_model'
 
 # create folders if they do not exist
 if not os.path.exists(f'./results/{task}'):
