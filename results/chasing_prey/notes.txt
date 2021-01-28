@@ -1,0 +1,11 @@
+normal prey better
+forward prey wiggling around and flipping over
+time_passed is useless for prey since all episodes end at 30s
+
+forward predator based of plot
+both predators performed better with normal prey
+
+take into consideration both REWARD and TIME for choosing the best predator
+
+BEST PRED: NORMAL PRED
+BEST PREY: NORMAL PREY

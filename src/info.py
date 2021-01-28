@@ -33,8 +33,8 @@ pred_actions = [
 
 mode = 'evaluating'
 task = 'chasing_prey'
-user = 'andi'
-take = 'take_08'
+user = 'gd'
+take = 'take_10'
 scene = 'predator_prey_arena'
 model_save_file = f'./results/{task}/{user}/{take}/{scene}'
 pred_model_load_file = f'./results/{task}/{user}/{take}/pred_model'

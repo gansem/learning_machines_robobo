@@ -1,0 +1,4 @@
+	accu_reward	episode_index	time_passed	winner
+0	113.96518743715434	1.0	13500.0	pred
+1	52.995479040975354	2.0	2600.0	pred
+2	59.2454594017094	3.0	25600.0	pred
