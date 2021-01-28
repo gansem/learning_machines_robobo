@@ -33,7 +33,7 @@ pred_actions = [
 
 mode = 'evaluating'
 task = 'chasing_prey'
-user = 'et'
+user = 'andi'
 take = 'take_04'
 scene = 'medium'
 model_save_file = f'./results/{task}/{user}/{take}/{mode}/{scene}'
