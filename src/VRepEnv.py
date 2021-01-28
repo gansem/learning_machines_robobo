@@ -143,8 +143,8 @@ class VRepEnv:
         # ------ Calculating reward
         reward = self._compute_sensor_penalty()
         # if moving forward, add bonus
-        if action[0] > 0 and action[0] == action[1]:
-            reward += 0.2
+        # if action[0] > 0 and action[0] == action[1]:
+        #     reward += 0.2
         self.accu_reward += reward
         print('\n---- PREY ----')
         print('action:', action_index)
@@ -165,7 +165,7 @@ class VRepEnv:
                 'episode_index': self.episode_counter, 
                 'time_passed': self.time_passed,
                 'accu_reward': self.accu_reward,
-               # 'prey_pos': self.prey.position(),
+                # 'prey_pos': self.prey.position(),
                 }
             self.df = self.df.append(entry, ignore_index=True)
 

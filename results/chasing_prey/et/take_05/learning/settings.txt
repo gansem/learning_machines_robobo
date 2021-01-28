@@ -1,0 +1,19 @@
+hardcoded task_1 robot as prey
+
+predator:
+
+9 obs
+
+pred_actions = [
+    (40, 40, 100),
+    (-15, 15, 100),
+    (15, -15, 100),
+    (20, 40, 100),
+    (40, 20, 100)]
+
+medium arena
+30,000 buffer size
+0.05  start exploration
+0.1 fraction exploration
+0.001 final exploration
+
