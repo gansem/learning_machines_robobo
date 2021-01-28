@@ -1,0 +1,26 @@
+actions: prey_actions = [
+    (40, 40, 100),
+    (-15, 15, 100),
+    (15, -15, 100),
+    (-40, -40, 100)]
+
+pred_actions = [
+    (40, 40, 100),
+    (-15, 15, 100),
+    (15, -15, 100),
+    (20, 40, 100),
+    (40, 20, 100)]
+
+after catching prey pred going back 6 sec and then no break
+
+prey no reward for going forward
+
+replay buffer = 30000
+
+medium arena
+
+updated reward for predator
+
+only 3 obs for predator
+
+learning steps 50000 predator 80000 prey
