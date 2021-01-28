@@ -41,7 +41,6 @@ if info.mode == 'evaluating':
     # thread_prey = OurDQNEvaluatingThread(prey_env, 'prey', info.prey_model_load_file+'predator_prey_arena_prey__6.94.model')
     thread_pred = OurDQNEvaluatingThread(pred_env, 'pred', 'C:/Users/Hammock/Documents/VU_masters_AI/learning_machines/learning_machines_robobo/results/chasing_prey/andi/take_04/learning/predator_prey_arena_pred__6.94.model')
     thread_prey = OurDQNEvaluatingThread(prey_env, 'prey', 'C:/Users/Hammock/Documents/VU_masters_AI/learning_machines/learning_machines_robobo/results/chasing_prey/andi/take_04/learning/predator_prey_arena_prey__6.94.model')
-    n_samples = 50
     results = pd.DataFrame()
 
     thread_pred.start()

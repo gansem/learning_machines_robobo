@@ -424,15 +424,15 @@ class OurDQNLearningThread(threading.Thread):
         self.OurDQNInstance.learn(total_timesteps=self.time_steps, model_saving_path=self.model_saving_path)
 
 class OurDQNEvaluatingThread(threading.Thread):
-    def __init__(self, env, role, model_loading_path):
+    def __init__(self, env, role, model_loading_path, n_samples=50):
         super(OurDQNEvaluatingThread, self).__init__()
         self.model = OurDQN.load(model_loading_path)
         self.env = env
         self.role = role
+        self.n_samples = n_samples
 
     def run(self):
-        n_samples = 50
-        for ep in range(n_samples):
+        for ep in range(self.n_samples):
             obs = self.env.reset(self.role)
             done = False
             while not done:
